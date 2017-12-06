@@ -21,7 +21,7 @@ grant select,insert,delete,update on database.table to 'test'@'%';
     This may leave you wondering why your changes seem to make no difference! */
 flush privileges;
 
-/* Setting a var "@overcloud_id" and executing prepared statments,
+/* Setting a var "@overcloud_id" and executing prepared statements,
     easy to do for var subs */
 set @overcloud_id = (SELECT id FROM heat.stack where name = "overcloud");
 set @last_touch = CONCAT('UPDATE heat.stack SET action="DELETE", 

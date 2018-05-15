@@ -4,10 +4,10 @@
 create database duck;
 create table test (example_id int(10) auto_increment,
   name varcharr(100), primary key (example_id));
-insert into test name values "valerie";
-update set test name = "valerie-is-awesome" where name == "valerie";
+insert into test name values "tester";
+update set test name = "tester-is-awesome" where name == "tester";
 drop table test;
-drop database fuck;
+drop database duck;
 
 
 /* simple user stuff */

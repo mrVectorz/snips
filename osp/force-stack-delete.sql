@@ -1,4 +1,5 @@
 # Script to force delete stuck overcloud deployments
+# Author:  Marc Methot
 
 delimiter //
 drop procedure if exists hunt //

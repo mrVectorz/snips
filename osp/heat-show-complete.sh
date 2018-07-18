@@ -1,5 +1,6 @@
 #!/bin/bash
-# Script to gather all deployment logs
+# Script to gather most deployment logs
+# Author:  Marc Methot
 
 echotee() {
   echo $1 | tee -a $file

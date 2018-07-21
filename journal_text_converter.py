@@ -1,50 +1,57 @@
 #!/usr/bin/python
 # Author:  Marc Methot
+# Version: 2.0
 
-# Script to convert output of "journalctl --no-pager --all --boot --output verbose"
-# to json at qhich point easier to read and search via jq.
+"""
+Script to convert output of command:
+"journalctl --no-pager --all --boot --output verbose"
+
+To json at which point easier to read and search via jq searches.
+This is done simply because sosreports provides it like so.
+"""
 
 import re
 import json
+import os
 from sys import argv
 
-class json_journal():
+class journal_json():
     def __init__(self, journal, json_out="./journal.json"):
         self.json_out = json_out
         self.journal = open(journal, "r")
-        self.json_file = open(self.json_out, "w")        
+        self.json_file = open(self.json_out, "w")
     def run(self):
-        self.converter()
-        self.to_json()
+        self.start()
+        self.filler()
         self.end()
+    def start(self):
+        self.json_file.write('{"messages": [\n')
     def end(self):
+        self.json_file.seek(-2, os.SEEK_END)
+        self.json_file.truncate()
+        self.json_file.write("]}")
         self.journal.close()
         self.json_file.close()
-    def converter(self):
+    def filler(self):
         __day_filter = re.compile("^[A-z]+.*")
-        __day=__time=__msg = ""
-        #TODO: Fix the bad workaround. Only reason for this is due to
-        #journal trunc
-        __unit = "systemd-journald.service"
-        self.jdict = {}
+        __field_filter = re.compile("^[\ ]+\w")
+        __message = {}
         for line in self.journal:
             if re.match(__day_filter, line):
-                __nday = line.split()[1]
-                if __day != __nday:
-                    self.jdict[__nday] = {}
-                    __day = __nday
-                __time = line.split()[2]
-            if "_SYSTEMD_UNIT=" in line:
-                __unit = line.split("=")[1][:-1]
-            if "MESSAGE=" in line:
-                __msg = line.split("=")[1][:-1]
-                if __unit not in self.jdict[__nday]:
-                    self.jdict[__day][__unit] = []
-                self.jdict[__day][__unit].append({"message" : __msg, "time" : __time})
-    def to_json(self):
-        self.jdict = json.dumps(self.jdict)
-        self.json_file.write(self.jdict)
+                time = line.split()[2]
+                try:
+                    if __message["time"] != time:
+                        self.to_json(__message)
+                        __message = {}
+                except KeyError:
+                        __message = {"day" : line.split()[1], "time" : time}
+            if re.match(__field_filter, line):
+                __message[line.split("=")[0][4:]] = line.split("=")[1][:-1]
+    def to_json(self, msg):
+        __j_obj = json.dumps(msg)
+        self.json_file.write(__j_obj)
+        self.json_file.write(",\n")
 
 if __name__ == "__main__":
-    j_file = json_journal(argv[1])
+    j_file = journal_json(argv[1])
     j_file.run()

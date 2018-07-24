@@ -40,13 +40,14 @@ class journal_json():
             if re.match(__day_filter, line):
                 time = line.split()[2]
                 try:
-                    if __message["time"] != time:
+                    if __message["TIME"] != time:
                         self.to_json(__message)
                         __message = {}
                 except KeyError:
-                        __message = {"day" : line.split()[1], "time" : time}
+                        __message = {"DAY" : line.split()[1], "TIME" : time}
             if re.match(__field_filter, line):
                 __message[line.split("=")[0][4:]] = line.split("=")[1][:-1]
+        self.to_json(__message)
     def to_json(self, msg):
         __j_obj = json.dumps(msg)
         self.json_file.write(__j_obj)

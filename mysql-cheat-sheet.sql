@@ -30,3 +30,7 @@ set @last_touch = CONCAT('UPDATE heat.stack SET action="DELETE",
 prepare stmt2 from @last_touch;
 execute stmt2;
 
+/* multi line output into variable to then select where any of them matches
+    instead of doing a loop */
+select distinct group_concat(stack_id) into @test from resource where status like "%PROGRESS%" order by stack_id;
+select * from stack where find_in_set(id, @test)\G

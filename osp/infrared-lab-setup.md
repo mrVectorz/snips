@@ -5,22 +5,16 @@ On your workstation, install the required dependencies :
 ```shell
 sudo dnf install git gcc libffi-devel openssl-devel python-virtualenv libselinux-python redhat-rpm-config -y
 ```
-
-Prepare a virtual environment for infrared :
-
-```shell
-  virtualenv ~/.venv_infrared
-  source ~/.venv_infrared/bin/activate
-  pip install --upgrade pip
-  pip install --upgrade setuptools
-```
-
 Installing infrared :
 
 ```shell
-  cd ~/.venv_infrared
   git clone https://github.com/redhat-openstack/infrared.git
   cd infrared
+  virtualenv .venv
+  echo ". $(pwd)/etc/bash_completion.d/infrared" >> ${.venv}/bin/activate
+  source ~/.venv/bin/activate
+  pip install --upgrade pip
+  pip install --upgrade setuptools
   pip install .
   echo ". $(pwd)/etc/bash_completion.d/infrared" >> ${VIRTUAL_ENV}/bin/activate
 ```

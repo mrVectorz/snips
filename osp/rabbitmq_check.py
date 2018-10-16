@@ -1,3 +1,6 @@
+# Script to write and consume a msg for rabbit
+# Author:  Marc Methot
+
 import pika
 import re
 import sys, os, errno, signal

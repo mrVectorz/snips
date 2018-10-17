@@ -47,7 +47,7 @@ class journal_json():
                         __message = {"DAY" : line.split()[1], "TIME" : time}
             if re.match(__field_filter, line):
                 __message[line.split("=")[0][4:]] = ''.join(
-                    [o for o in test.split("=")[1:]])[:-1]
+                    [o for o in line.split("=")[1:]])[:-1]
         self.to_json(__message)
     def to_json(self, msg):
         __j_obj = json.dumps(msg)

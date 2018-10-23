@@ -1,0 +1,21 @@
+#!/bin/bash
+i=('a' 'b')
+declare -A tests
+tests=(['letters']=$i)
+#tests=(
+#['urls']='one.com two.com three.com'
+#['regex']='regex1 regex2 regex3'
+#)
+#site_count=$(echo ${tests[@]} | wc -w)
+counter=0
+
+echo ${tests[urls]}
+echo ${tests[regex]}
+echo ${!tests[@]}
+
+echo ${tests[letters[1]]}
+exit
+for site in $(eval echo {1..$(echo $site_count/2 | bc)}); do
+  echo ${tests[$counter]} ${tests[$counter+1]}
+  ((counter+=2))
+done

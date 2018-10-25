@@ -12,7 +12,7 @@ Installing infrared :
   cd infrared
   virtualenv .venv
   echo ". $(pwd)/etc/bash_completion.d/infrared" >> ${.venv}/bin/activate
-  source ~/.venv/bin/activate
+  source .venv/bin/activate
   pip install --upgrade pip
   pip install --upgrade setuptools
   pip install .

@@ -54,7 +54,7 @@ infrared virsh --host-address $YOURLABSERVER --host-key ~/.ssh/key_sbr_lab --cle
 Prepare the environment :
 
 ```shell
-infrared virsh --host-address $YOURLABSERVER --host-key ~/.ssh/key_sbr_lab --topology-nodes undercloud:1,controller:3,compute:1 -e override.controller.cpu=4 -e override.controller.memory=8092 -e override.undercloud.disks.disk1.size=150G -e override.compute.memory=12288 --image-url url_to_download_/7.5/.../rhel-guest-image....x86_64.qcow2
+infrared virsh --host-address $YOURLABSERVER --host-key ~/.ssh/key_sbr_lab --topology-nodes undercloud:1,controller:3,compute:1 -e override.controller.cpu=4 -e override.controller.memory=12288 -e override.undercloud.disks.disk1.size=150G --image-url url_to_download_/7.5/.../rhel-guest-image....x86_64.qcow2
 ```
 
 Install the undercloud :
@@ -75,5 +75,40 @@ infrared tripleo-overcloud --deployment-files virt --version 13 --introspect yes
 Alternatively, deploy the OC aswell:
 
 ```shell
-infrared tripleo-overcloud --deployment-files virt --version 13 --introspect yes --tag yes --deploy yes --post yes --containers yes
+infrared tripleo-overcloud --deployment-files virt --version 13 --introspect yes --tag yes --deploy yes --containers yes
 ```
+
+Once done you can use the cloud-config plugin post creation to create networks and stuff:
+
+```shell
+infrared cloud-config -vv \ 
+-o cloud-config.yml \ 
+--deployment-files virt \ 
+--tasks create_external_network,forward_overcloud_dashboard,network_time,tempest_deployer_input
+```
+
+## Additional Recommendations
+
+- Lowering the UC node's memory footprint
+Once the UC node deployed, depending on the size of you lab server (typical is 64Gb), it could be useful to lower the worker counts to 1 to limit memory usage.
+Just run the bellow script as root:
+https://github.com/mrVectorz/snips/blob/master/osp/low_memory_uc.sh
+
+- Lowering the memory usage on the controllers
+Just as before, in a lab/PoC environment, operators do not need all the workers configured.
+To lower the counts on the controller nodes simply include the tripleo environment template:
+/usr/share/openstack-tripleo-heat-templates/environments/low-memory-usage.yaml
+
+To do this in your OC deployment via IR create a template locally:
+example: infra_low_mem.yaml
+```shell
+tripleo_heat_templates:
+    - /usr/share/openstack-tripleo-heat-templates/environments/low-memory-usage.yaml
+```
+
+Once saved simply include it in your tripleo-overcloud command. Example:
+```shell
+infrared tripleo-overcloud --deployment-files virt --version 13 --introspect yes --tag yes --deploy yes --containers yes --overcloud-templates infra_low_mem.yaml
+```
+This will add it to the OC deployment command as an environment file.
+

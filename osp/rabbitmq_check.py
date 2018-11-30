@@ -66,8 +66,8 @@ if os.path.isfile(config_file):
   CONF(default_config_files=[config_file])
 
   if CONF.oslo_messaging_notifications.transport_url != None:
-    transport_url = CONF.oslo_messaging_notifications.transport_url.split(",")[0]
-    #print transport_url
+    transport_url = re.sub("^rabbit", "amqp",
+                           CONF.oslo_messaging_notifications.transport_url.split(",")[0])
     parameters = pika.URLParameters(transport_url)
   else:
     user = CONF.oslo_messaging_rabbit.rabbit_userid

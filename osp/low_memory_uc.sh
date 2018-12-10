@@ -35,7 +35,7 @@ done
 
 # wsgi files
 for file in $(grep -l -r WSGIDaemonProcess /etc/httpd/conf.d/); do
-  awk COUNT=$pcount '{if ($0 ~ /WSGIDaemonProcess/) print gensub(/(.*processes=)[0-9]+(.*)/, "\\1"COUNT"\\2", "g", $0); else print}' < $file > ${file}.bak && mv -f ${file}.bak $file
+  awk -v COUNT=$pcount '{if ($0 ~ /WSGIDaemonProcess/) print gensub(/(.*processes=)[0-9]+(.*)/, "\\1"COUNT"\\2", "g", $0); else print}' < $file > ${file}.bak && mv -f ${file}.bak $file
 done
 
 # restarting services to apply the changes

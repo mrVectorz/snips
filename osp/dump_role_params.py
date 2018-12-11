@@ -14,8 +14,8 @@ python dump_role_params.py <path to OoO templates>\n\n
 default_path = "/usr/share/openstack-tripleo-heat-templates/"
 
 if len(sys.argv) >= 2:
-    if sys.argv[1] == "--help" or len(sys.argv) > 2:
-        print(help_msg, end='')
+    if sys.argv[1] == "--help" or sys.argv[1] == "-h" or len(sys.argv) > 2:
+        print(help_msg)
         sys.exit()
     else:
         path = sys.argv[1] if sys.argv[1] else default_path
@@ -28,6 +28,8 @@ paths = [
     "extraconfig/services/"
 ]
 
+"""
+#python3
 def find_files(path):
     files = []
     with os.scandir(path) as it:
@@ -36,9 +38,19 @@ def find_files(path):
                 if search_file(entry.path):
                     files.append(entry.path)
     return files
+"""
+def find_files(path):
+    matches = []
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            yaml = os.path.join(root, name)
+            if search_file(yaml):
+                matches.append(yaml)
+    return matches
 
-def search_file(file):
-    with open(file, 'r') as f:
+
+def search_file(yaml):
+    with open(yaml, 'r') as f:
         s = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
         if s.find(b'RoleParametersValue') != -1:
             return True
@@ -60,7 +72,6 @@ for p in paths:
     files.append(find_files(path+p))
 
 files = itertools.chain(*files)
-
 # Get all available params
 para = [get_role_params(file) for file in files]
 para = list(itertools.chain(*para))

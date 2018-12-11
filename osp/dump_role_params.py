@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# Author: Marc Methot
+# Script to dump all role specific paramters in OoO templates
+
 import yaml
 import os
 import mmap

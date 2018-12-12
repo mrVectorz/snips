@@ -72,9 +72,8 @@ def get_role_params(file):
 # Get all files that have "RoleParametersValue"
 files = []
 for p in paths:
-    files.append(find_files(path+p))
+    files = files + find_files(path+p)
 
-files = itertools.chain(*files)
 # Get all available params
 para = [get_role_params(file) for file in files]
 para = list(itertools.chain(*para))

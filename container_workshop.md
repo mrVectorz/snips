@@ -1,10 +1,10 @@
-## Container Training
+﻿## Container Training
 Presenter: Marc Methot
 Date:
 
 ### What are containers?
 Containers are just an agglomerate of kernel features made easy.
-They principly rely on the following key features:
+They principally rely on the following key features:
 - namespaces
 - cgroups
 - capabilities
@@ -19,7 +19,7 @@ After these kernel based features, we have what makes it all usuable.
 Lastly we will cover how Tripleo makes use of containers.
 
 ### Namespaces
-I don't feel like reitterating, please go check out:
+I don't feel like reiterating, please go check out:
 - https://github.com/andreaskaris/blog/blob/master/namespaces.md
 
 ### cgroups
@@ -27,7 +27,8 @@ I don't feel like reitterating, please go check out:
 ### capabilities
 
 ### Examples
-1. This example is just to show a simple breakdown of how namespaces with cgroups can achieve a container-ish
+1. This example is just to show a simple breakdown of how namespaces with cgroups can achieve a container-ish.
+
 We first setup the btrfs volume where we will work from:
 ~~~
 # mkfs.btrfs /dev/sdb
@@ -43,7 +44,7 @@ Then we create the structures we will need:
 Create subvolume 'images/alpine'
 ~~~
 
-Here we can see how usefull a registry can be, we download and then unpackage the image:
+Here we can see how useful a registry can be, we download and then unpackage the image:
 ~~~
 # CID=$(docker run -d alpine true)
 Unable to find image 'alpine:latest' locally

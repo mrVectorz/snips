@@ -20,6 +20,8 @@ Date: Jan-2019
     3. [Configuration Steps](#configuration-steps)
     4. [Kuryr](#kuryr)
     5. [Magnum](#magnum)
+8. [Examples](#example)
+    1. [Making a manual container](#making-a-manual-container)
 
 ### Introduction to containers
 Containers are just an agglomerate of kernel features made easy.
@@ -76,7 +78,10 @@ As previously mentionned we currently use Docker, however we use a fancy wrapper
 #### Magnum
 
 ### Examples
-1. This example is just to show a simple breakdown of how namespaces with cgroups can achieve a container-ish.
+In this section we will have a few types of examples, ranging from debugging a failed container to setting up one mnually.
+
+#### Making a manual container
+This example is just to show a simple breakdown of how namespaces with cgroups can achieve a container-ish.
 
 We first setup the btrfs volume where we will work from:
 ~~~
@@ -202,4 +207,5 @@ Things to add into this example:
 - device ns
 - capabilities
 - selinux
+
 

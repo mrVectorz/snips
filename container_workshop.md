@@ -20,11 +20,41 @@ Lastly we will cover how Tripleo makes use of containers.
 
 ### Namespaces
 I don't feel like reiterating, please go check out:
-- https://github.com/andreaskaris/blog/blob/master/namespaces.md
+- [Andreas Karis' blog post / presentation](https://github.com/andreaskaris/blog/blob/master/namespaces.md)
 
 ### cgroups
+Contronl groups (cgroups), simply put, provide a way to limit and control the amount of resources (CPU, memory, network, etc) that each collection of processes can use.
+These aren't specific to containers, it is setup for all processes right at boot. We can create different groups and subgroups from there.
+You could manage allowed system resources with `systemctl` (or in the unit file with "ControlGroupAttribute") for each service.
+
+We (Red Hat) have a decent [guide on the matter](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/resource_management_guide/chap-introduction_to_control_groups).
 
 ### capabilities
+
+### Copy-on-Write
+
+### Full Blown Containers
+Here we will mostly focus on Docker specific tooling as this is what is currently used in Tripleo deployments.
+
+#### Runtimes
+
+#### API
+
+#### Registry
+
+### Tripleo Specifics
+Since the Openstack 12 realease, we have been shipping Tripleo (OoO) with containers on the overcloud nodes (14 will also have these on the undercloud).
+As previously mentionned we currently use Docker, however we use a fancy wrapper called Paunch so we can be independant.
+
+#### Kolla Containers
+
+#### Paunch
+
+#### Configuration steps
+
+#### Kuryr
+
+#### Magnum
 
 ### Examples
 1. This example is just to show a simple breakdown of how namespaces with cgroups can achieve a container-ish.

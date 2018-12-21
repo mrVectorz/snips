@@ -22,14 +22,14 @@ Lastly we will cover how Tripleo makes use of containers.
 I don't feel like reiterating, please go check out:
 - [Andreas Karis' blog post / presentation](https://github.com/andreaskaris/blog/blob/master/namespaces.md)
 
-### cgroups
-Contronl groups (cgroups), simply put, provide a way to limit and control the amount of resources (CPU, memory, network, etc) that each collection of processes can use.
+### Control Groups
+Control groups (cgroups), simply put, provide a way to limit and control the amount of resources (CPU, memory, network, etc) that each collection of processes can use.
 These aren't specific to containers, it is setup for all processes right at boot. We can create different groups and subgroups from there.
 You could manage allowed system resources with `systemctl` (or in the unit file with "ControlGroupAttribute") for each service.
 
 We (Red Hat) have a decent [guide on the matter](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/resource_management_guide/chap-introduction_to_control_groups).
 
-### capabilities
+### Capabilities
 
 ### Copy-on-Write
 

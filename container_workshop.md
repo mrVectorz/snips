@@ -1,8 +1,15 @@
 ﻿## Container Training
-Presenter: Marc Methot
-Date:
 
-### What are containers?
+Presenter: Marc Methot
+
+Date: Jan-2019
+
+### Index
+1. [Introduction to containers](#introduction-to-containers)
+2. [Namespaces](#namespaces)
+3. [Control Groups](#control-groups)
+
+### Introduction to containers
 Containers are just an agglomerate of kernel features made easy.
 They principally rely on the following key features:
 - namespaces
@@ -182,5 +189,5 @@ Things to add into this example:
 - cgroups
 - device ns
 - capabilities
-- selinus
+- selinux
 

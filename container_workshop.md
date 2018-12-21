@@ -8,6 +8,18 @@ Date: Jan-2019
 1. [Introduction to containers](#introduction-to-containers)
 2. [Namespaces](#namespaces)
 3. [Control Groups](#control-groups)
+4. [Capabilities](#capabilities)
+5. [Copy-on-Write](#copy-on-write)
+6. [Full blown containers](#full-blown-containers)
+    1. [Runtimes](#runtimes)
+    2. [API](#api)
+    3. [Registry](#registry)
+7. [Tripleo](#tripleo)
+    1. [Kolla Containers](#kolla-containers)
+    2. [Paunch](#paunch)
+    3. [Configuration Steps](#configuration-steps)
+    4. [Kuryr](#kuryr)
+    5. [Magnum](#magnum)
 
 ### Introduction to containers
 Containers are just an agglomerate of kernel features made easy.
@@ -49,7 +61,7 @@ Here we will mostly focus on Docker specific tooling as this is what is currentl
 
 #### Registry
 
-### Tripleo Specifics
+### Tripleo
 Since the Openstack 12 realease, we have been shipping Tripleo (OoO) with containers on the overcloud nodes (14 will also have these on the undercloud).
 As previously mentionned we currently use Docker, however we use a fancy wrapper called Paunch so we can be independant.
 

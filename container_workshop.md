@@ -20,7 +20,7 @@ Date: Jan-2019
     3. [Configuration Steps](#configuration-steps)
     4. [Kuryr](#kuryr)
     5. [Magnum](#magnum)
-8. [Examples](#example)
+8. [Examples](#examples)
     1. [Making a manual container](#making-a-manual-container)
 
 ### Introduction to containers

@@ -22,6 +22,9 @@ Date: Jan-2019
     5. [Magnum](#magnum)
 8. [Examples](#examples)
     1. [Making a manual container](#making-a-manual-container)
+        - [Setup](#setup)
+        - [Namespaces](#namespaces-1)
+        - [cgroups](#cgroups)
 
 ### Introduction to containers
 Containers are just an agglomerate of kernel features made easy.
@@ -48,7 +51,22 @@ Control groups (cgroups), simply put, provide a way to limit and control the amo
 These aren't specific to containers, it is setup for all processes right at boot. We can create different groups and subgroups from there.
 You could manage allowed system resources with `systemctl` (or in the unit file with "ControlGroupAttribute") for each service.
 
-We (Red Hat) have a decent [guide on the matter](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/resource_management_guide/chap-introduction_to_control_groups).
+cgroup subsystems represent a since resource each. These are mounted automatically by systemd at boot. You can view the currently mounted ones in `/proc/cgroups`.
+The following are the default mounted in RHEL (source [0]):
+- blkio: sets limits on i/o access to and from block devices
+- cpu: uses the CPU scheduler to provide cgroup tasks access to the CPU. It is mounted together with the cpuacct controller on the same mount;
+- cpuacct: creates automatic reports on CPU resources used by tasks in a cgroup. It is mounted together with the cpu controller on the same mount;
+- cpuset: assigns individual CPUs (on a multicore system) and memory nodes to tasks in a cgroup;
+- devices: allows or denies access to devices for tasks in a cgroup;
+- freezer: suspends or resumes tasks in a cgroup;
+- memory: sets limits on memory use by tasks in a cgroup and generates automatic reports on memory resources used by those tasks;
+- net_cls: tags network packets with a class identifier (classid) that allows the Linux traffic controller (the tc command) to identify packets originating from a particular cgroup task. A subsystem of net_cls, the net_filter (iptables) can also use this tag to perform actions on such packets. The net_filter tags network sockets with a firewall identifier (fwid) that allows the Linux firewall (the iptables command) to identify packets (skb->sk) originating from a particular cgroup task;
+- perf_event: enables monitoring cgroups with the perf tool;
+- hugetlb: allows to use virtual memory pages of large sizes and to enforce resource limits on these pages.
+
+[0] - Red Hat's [guide on the matter](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/resource_management_guide/chap-introduction_to_control_groups).
+
+
 
 ### Capabilities
 
@@ -82,7 +100,9 @@ In this section we will have a few types of examples, ranging from debugging a f
 
 #### Making a manual container
 This example is just to show a simple breakdown of how namespaces with cgroups can achieve a container-ish.
+To be used as a guide only, do not attempt in any sorts of prod-like environment.
 
+##### Setup
 We first setup the btrfs volume where we will work from:
 ~~~
 # mkfs.btrfs /dev/sdb
@@ -98,7 +118,7 @@ Then we create the structures we will need:
 Create subvolume 'images/alpine'
 ~~~
 
-Here we can see how useful a registry can be, we download and then unpackage the image:
+Here we can see how useful an image registry can be, we download and then unpackage the already made tiny image:
 ~~~
 # CID=$(docker run -d alpine true)
 Unable to find image 'alpine:latest' locally
@@ -122,7 +142,10 @@ Create a snapshot of 'images/alpine/' in 'containers/test_container'
 # touch containers/test_container/THIS_IS_TEST_CONTAINER
 ~~~
 
-We can now already see that we have an almost container like feel with just a few namespaces:
+##### Namespaces
+In this section of the example we're going to start unsharing namespaces, we can quicly to something that feels like a normal container.
+
+We can now already see that we have an almost container like feel:
 ~~~
 # unshare --mount --uts --ipc --net --pid --fork bash
 # ps
@@ -203,9 +226,9 @@ We then need to do this "handoff" within the container:
 ~~~
 
 Things to add into this example:
-- cgroups
 - device ns
 - capabilities
 - selinux
 
+##### cgroups
 

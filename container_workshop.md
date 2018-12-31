@@ -25,6 +25,7 @@ Date: Jan-2019
         - [Setup](#setup)
         - [Namespaces](#namespaces-1)
         - [cgroups](#cgroups)
+    2. [Pauch debug logs](#pauch-debug-logs)
 
 ### Introduction to containers
 Containers are just an agglomerate of kernel features made easy.
@@ -314,4 +315,68 @@ Things to add into this example:
 - selinux
 
 ##### cgroups
+
+#### Pauch debug logs
+We can set debug logs in most of the openstack components fairly easily.
+
+First we check if the container is already running, as if it is the task is done by simply restarting it after the modification.
+
+Example with container running (we will do nova api):
+~~~
+# docker ps | grep nova-api
+1adf5a0df37a        192.168.24.1:8787/rhosp14/openstack-nova-api:2018-11-26.1                    "kolla_start"            4 weeks ago         Up 4 weeks (healthy)                         nova_metadata
+483857212bda        192.168.24.1:8787/rhosp14/openstack-nova-api:2018-11-26.1                    "kolla_start"            4 weeks ago         Up 4 weeks (healthy)                         nova_api
+0156ea17dfc0        192.168.24.1:8787/rhosp14/openstack-nova-api:2018-11-26.1                    "kolla_start"            4 weeks ago         Up 4 weeks                                   nova_api_cron
+# docker inspect nova_api | jq -r '.[].Config.Labels.config_id'
+tripleo_step4
+# docker inspect nova_api | jq -r '.[].Config.Labels.container_name'
+nova_api
+# paunch debug --file /var/lib/tripleo-config/docker-container-startup-config-step_3.json --container nova_api --action dump-yaml
+nova_api:
+  environment:
+  - KOLLA_CONFIG_STRATEGY=COPY_ALWAYS
+  healthcheck:
+    test: /openstack/healthcheck
+  image: 192.168.24.1:8787/rhosp14/openstack-nova-api:2018-11-26.1
+  net: host
+  privileged: true
+  restart: always
+  start_order: 2
+  user: root
+  volumes:
+  - /etc/hosts:/etc/hosts:ro
+  - /etc/localtime:/etc/localtime:ro
+  - /etc/pki/ca-trust/extracted:/etc/pki/ca-trust/extracted:ro
+  - /etc/pki/ca-trust/source/anchors:/etc/pki/ca-trust/source/anchors:ro
+  - /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt:ro
+  - /etc/pki/tls/certs/ca-bundle.trust.crt:/etc/pki/tls/certs/ca-bundle.trust.crt:ro
+  - /etc/pki/tls/cert.pem:/etc/pki/tls/cert.pem:ro
+  - /dev/log:/dev/log
+  - /etc/ssh/ssh_known_hosts:/etc/ssh/ssh_known_hosts:ro
+  - /etc/puppet:/etc/puppet:ro
+  - /var/log/containers/nova:/var/log/nova
+  - /var/log/containers/httpd/nova-api:/var/log/httpd
+  - /var/lib/kolla/config_files/nova_api.json:/var/lib/kolla/config_files/config.json:ro
+  - /var/lib/config-data/puppet-generated/nova/:/var/lib/kolla/config_files/src:ro
+  - ''
+  - ''
+# #Here we see the binded volumes where the nova.conf file would be located
+# crudini --set /var/lib/config-data/puppet-generated/nova/etc/nova/nova.conf DEFAULT debug true
+# crudini --get /var/lib/config-data/puppet-generated/nova/etc/nova/nova.conf DEFAULT debug
+true
+# docker restart nova_api
+nova_api
+# docker ps |grep nova_api
+483857212bda        192.168.24.1:8787/rhosp14/openstack-nova-api:2018-11-26.1                    "kolla_start"            4 weeks ago         Up 31 seconds (healthy)                       nova_api
+0156ea17dfc0        192.168.24.1:8787/rhosp14/openstack-nova-api:2018-11-26.1                    "kolla_start"            4 weeks ago         Up 4 weeks                                    nova_api_cron
+~~~
+
+If we need to start the docker manually as if it had stopped, we would use `--action run`:
+~~~
+# paunch debug --file /var/lib/tripleo-config/docker-container-startup-config-step_3.json --container nova_api --action run
+05f24cc41c64f9379326673e77eb7c42c8849410fa8b3e6acaf21fdf42f2ca5a
+# docker ps |grep nova_api
+05f24cc41c64        192.168.24.1:8787/rhosp14/openstack-nova-api:2018-11-26.1                    "kolla_start"            48 seconds ago      Up 47 seconds (healthy)                       nova_api-vbew3x7x
+0156ea17dfc0        192.168.24.1:8787/rhosp14/openstack-nova-api:2018-11-26.1                    "kolla_start"            4 weeks ago         Up 4 weeks                                    nova_api_cron
+~~~
 

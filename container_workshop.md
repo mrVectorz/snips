@@ -83,11 +83,94 @@ Here we will mostly focus on Docker specific tooling as this is what is currentl
 
 ### Tripleo
 Since the Openstack 12 realease, we have been shipping Tripleo (OoO) with containers on the overcloud nodes (14 will also have these on the undercloud).
-As previously mentionned we currently use Docker, however we use a fancy wrapper called Paunch so we can be independant.
+The container runtime currently used by OoO is containerd (dockerd), however we use a wrapper called Paunch to manage the containers.
 
 #### Kolla Containers
 
 #### Paunch
+Pauch is the utility used to launch, manage and configure containers. Only containers created by paunch will be modified by paunch.
+This utility only keeps track of are labels, whether a certain container should be running or not is of no matter.
+
+Paunch is idempotent, as in making multiple identical requests has the same effect as making a single request. The aim of the idempotency behaviour is to leave containers running when their config has not changed, but replace containers which have modified config.
+
+As OoO does all the configuration parts in the deployment, we will only focus on the debugging aspect.
+
+Labels on the containers are the only thing that paunch relies on and the `pauch debug` command (which is the only useful one for debugging) requires to know some information to even use it.
+
+To list all labels on a container (using keystone for example):
+~~~
+# docker inspect keystone | jq -r '.[].Config.Labels'
+{
+  "version": "14.0",
+  "vendor": "Red Hat, Inc.",
+  "vcs-type": "git",
+  "vcs-ref": "6635d448f90bf706adcb39272d1cfc8ee22036ec",
+  "url": "https://access.redhat.com/containers/#/registry.access.redhat.com/rhosp14/openstack-keystone/images/14.0-81",
+  "summary": "Red Hat OpenStack Platform 14.0 keystone",
+  "release": "81",
+  "config_id": "tripleo_step3",
+  "config_data": "{\"start_order\": 2, \"healthcheck\": {\"test\": \"/openstack/healthcheck\"}, \"image\": \"192.168.24.1:8787/rhosp14/openstack-keystone:2018-11-26.1\", \"environment\": [\"KOLLA_CONFIG_STRATEGY=COPY_ALWAYS\", \"TRIPLEO_CONFIG_HASH=da5a48a8a5cb6c5469a5db334d36a69a\"], \"volumes\": [\"/etc/hosts:/etc/hosts:ro\", \"/etc/localtime:/etc/localtime:ro\", \"/etc/pki/ca-trust/extracted:/etc/pki/ca-trust/extracted:ro\", \"/etc/pki/ca-trust/source/anchors:/etc/pki/ca-trust/source/anchors:ro\", \"/etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt:ro\", \"/etc/pki/tls/certs/ca-bundle.trust.crt:/etc/pki/tls/certs/ca-bundle.trust.crt:ro\", \"/etc/pki/tls/cert.pem:/etc/pki/tls/cert.pem:ro\", \"/dev/log:/dev/log\", \"/etc/ssh/ssh_known_hosts:/etc/ssh/ssh_known_hosts:ro\", \"/etc/puppet:/etc/puppet:ro\", \"/var/log/containers/keystone:/var/log/keystone\", \"/var/log/containers/httpd/keystone:/var/log/httpd\", \"/var/lib/kolla/config_files/keystone.json:/var/lib/kolla/config_files/config.json:ro\", \"/var/lib/config-data/puppet-generated/keystone/:/var/lib/kolla/config_files/src:ro\", \"\", \"\"], \"net\": \"host\", \"privileged\": false, \"restart\": \"always\"}",
+  "com.redhat.component": "openstack-keystone-container",
+  "com.redhat.build-host": "cpt-0004.osbs.prod.upshift.rdu2.redhat.com",
+  "build-date": "2018-11-26T19:32:31.327477",
+  "batch": "20181126.1",
+  "authoritative-source-url": "registry.access.redhat.com",
+  "architecture": "x86_64",
+  "container_name": "keystone",
+  "description": "Red Hat OpenStack Platform 14.0 keystone",
+  "distribution-scope": "public",
+  "io.k8s.description": "Red Hat OpenStack Platform 14.0 keystone",
+  "io.k8s.display-name": "Red Hat OpenStack Platform 14.0 keystone",
+  "io.openshift.tags": "rhosp osp openstack osp-14.0",
+  "managed_by": "paunch",
+  "name": "rhosp14/openstack-keystone"
+}
+~~~
+
+The relevant data that the `debug` command requires are "container_name" and "config_id".
+"config_id" will only serve to tell us which config file to check for more information on this container ("print-cmd", "dump-yaml").
+The config files used by OoO are all in dir "/var/lib/tripleo-config/" and the files to look into are "docker-container-startup-config-step*.json"
+
+Looking at the help output:
+~~~
+# paunch debug --help
+usage: paunch debug [-h] --file <file> [--label <label=value>]
+                    [--managed-by <name>] [--action <name>] --container <name>
+                    [--interactive] [--shell] [--user <name>]
+                    [--overrides <name>] [--config-id <name>]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --file <file>         YAML or JSON file containing configuration data
+  --label <label=value>
+                        Extra labels to apply to containers in this config, in
+                        the form --label label=value --label label2=value2.
+  --managed-by <name>   Override the name of the tool managing the containers
+  --action <name>       Action can be one of: "dump-json", "dump-yaml",
+                        "print-cmd", or "run"
+  --container <name>    Name of the container you wish to manipulate
+  --interactive         Run container in interactive mode - modifies config
+                        and execution of container
+  --shell               Similar to interactive but drops you into a shell
+  --user <name>         Start container as the specified user
+  --overrides <name>    JSON configuration information used to override
+                        default config values
+  --config-id <name>    ID to assign to containers
+~~~
+
+`--file` for our above example (keystone container) will be "/var/lib/tripleo-config/docker-container-startup-config-step_3.json"
+`--container` is required to identify which container you want to manipulate out of all the ones in the specified file.
+
+From here, we can dump the container's configuration in three formats (json, yaml and a docker run command string) or execute/run the container in either of two modes (interactive or detached)
+
+To conclude this overview of Paunch, we will dump the command used to start the `keystone` container. This could be useful if for example it failed to start or was killed/destroyed.
+~~~
+# file="/var/lib/tripleo-config/docker-container-startup-config-step"
+# step=$(docker inspect keystone | jq -r '.[].Config.Labels.config_id' | egrep -o "[0-9]*")
+# name=$(docker inspect keystone | jq -r '.[].Config.Labels.container_name')
+# paunch debug --file ${file}_${step}.json --container $name --action print-cmd
+docker run --name keystone-uvb40g2t --detach=true --env=KOLLA_CONFIG_STRATEGY=COPY_ALWAYS --net=host --health-cmd=/openstack/healthcheck --privileged=false --restart=always --volume=/etc/hosts:/etc/hosts:ro --volume=/etc/localtime:/etc/localtime:ro --volume=/etc/pki/ca-trust/extracted:/etc/pki/ca-trust/extracted:ro --volume=/etc/pki/ca-trust/source/anchors:/etc/pki/ca-trust/source/anchors:ro --volume=/etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt:ro --volume=/etc/pki/tls/certs/ca-bundle.trust.crt:/etc/pki/tls/certs/ca-bundle.trust.crt:ro --volume=/etc/pki/tls/cert.pem:/etc/pki/tls/cert.pem:ro --volume=/dev/log:/dev/log --volume=/etc/ssh/ssh_known_hosts:/etc/ssh/ssh_known_hosts:ro --volume=/etc/puppet:/etc/puppet:ro --volume=/var/log/containers/keystone:/var/log/keystone --volume=/var/log/containers/httpd/keystone:/var/log/httpd --volume=/var/lib/kolla/config_files/keystone.json:/var/lib/kolla/config_files/config.json:ro --volume=/var/lib/config-data/puppet-generated/keystone/:/var/lib/kolla/config_files/src:ro 192.168.24.1:8787/rhosp14/openstack-keystone:2018-11-26.1
+~~~
 
 #### Configuration steps
 
@@ -96,7 +179,7 @@ As previously mentionned we currently use Docker, however we use a fancy wrapper
 #### Magnum
 
 ### Examples
-In this section we will have a few types of examples, ranging from debugging a failed container to setting up one mnually.
+In this section we will have a few types of examples, ranging from debugging a failed container to setting up one manually.
 
 #### Making a manual container
 This example is just to show a simple breakdown of how namespaces with cgroups can achieve a container-ish.

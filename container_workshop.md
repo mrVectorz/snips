@@ -67,7 +67,238 @@ The following are the default mounted in RHEL (source [0]):
 
 [0] - Red Hat's [guide on the matter](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/resource_management_guide/chap-introduction_to_control_groups).
 
+On RHEL cgroups are enabled by default. This does come at a slight performance overhead due to the accounting. However if really desired we could disable this mechanism by removing the `libcgroup` package, but this isn't practical anymore as there are a lot of dependencies. Instead we can trim the overhead down a little bit by disabling specific controllers (only memory has any impact for now).
 
+As per the [kernel documentation](https://www.kernel.org/doc/Documentation/admin-guide/kernel-parameters.txt):
+~~~
+	cgroup_disable=	[KNL] Disable a particular controller
+			Format: {name of the controller(s) to disable}
+			The effects of cgroup_disable=foo are:
+			- foo isn't auto-mounted if you mount all cgroups in
+			  a single hierarchy
+			- foo isn't visible as an individually mountable
+			  subsystem
+			{Currently only "memory" controller deal with this and
+			cut the overhead, others just disable the usage. So
+			only cgroup_disable=memory is actually worthy}
+~~~
+
+We only have to add parameter `cgroup_disable=memory` to grub at system boot.
+
+To manually gather information, configure or execute on cgroups we install the `libcgroup-tools` package.
+
+Here we see the controllers and how many groups they have:
+~~~
+[root@controller-1 ~]# cat /proc/cgroups
+#subsys_name	hierarchy	num_cgroups	enabled
+cpuset	5	60	1
+cpu	2	260	1
+cpuacct	2	260	1
+memory	3	260	1
+devices	11	260	1
+freezer	7	60	1
+net_cls	10	60	1
+blkio	6	260	1
+perf_event	9	60	1
+hugetlb	8	60	1
+pids	4	260	1
+net_prio	10	60	1
+~~~
+
+In the example output above, the hierarchy column lists IDs of the existing hierarchies on the system. Subsystems with the same hierarchy ID are attached to the same hierarchy.
+The num_cgroup column lists the number of existing cgroups in the hierarchy that uses a particular subsystem.
+We can then see we have over a thousand of already configured cgroups.
+
+To see more specifically what these groups are:
+~~~
+[root@controller-1 ~]# lscgroup | awk 'BEGIN {FS="/"} {print $2}' | sort | uniq -c | sort -n
+      5 machine.slice
+      5 user.slice
+     10 
+   1580 system.slice
+[root@controller-1 ~]# systemctl -t slice
+UNIT                                                          LOAD   ACTIVE SUB    DESCRIPTION
+-.slice                                                       loaded active active Root Slice
+machine.slice                                                 loaded active active Virtual Machine and Container Slice
+system-getty.slice                                            loaded active active system-getty.slice
+system-lvm2\x2dpvscan.slice                                   loaded active active system-lvm2\x2dpvscan.slice
+system-selinux\x2dpolicy\x2dmigrate\x2dlocal\x2dchanges.slice loaded active active system-selinux\x2dpolicy\x2dmigrate\x2dlocal\x2dchanges.slice
+system-serial\x2dgetty.slice                                  loaded active active system-serial\x2dgetty.slice
+system.slice                                                  loaded active active System Slice
+user-0.slice                                                  loaded active active User Slice of root
+user-1000.slice                                               loaded active active User Slice of heat-admin
+user.slice                                                    loaded active active User and Session Slice
+
+LOAD   = Reflects whether the unit definition was properly loaded.
+ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
+SUB    = The low-level unit activation state, values depend on unit type.
+
+10 loaded units listed. Pass --all to see loaded but inactive units, too.
+To show all installed unit files use 'systemctl list-unit-files'.
+~~~
+
+We can denote that 10 slices are active. Which can be broken down:
+- There are five instances of the "machine.slice"; which the default place for all virtual machines and Linux containers.
+~~~
+[root@controller-1 ~]# lscgroup | grep machine.slice
+cpu,cpuacct:/machine.slice
+memory:/machine.slice
+pids:/machine.slice
+blkio:/machine.slice
+devices:/machine.slice
+~~~
+
+- Also 5 "user.slice"; the default place for all user sessions.
+- The 10 "empty" ones are simply the controllers themselves.
+- As for the 1580 "system.slice", which isthe default place for all system services, are all processes running on the system as they are child processes of the systemd init process.
+  Within this slice, we will have all the mounts, services, scopes and subslices of systemd.
+  Docker containers in our case will also be part of this slice, but divided in their subslice. The dash ("-") character acts as a separator of the path components.
+  For example, let's see how the heat-api container is setup:
+~~~
+[root@controller-1 ~]# docker ps | grep heat_api$
+b25aa6e03826        192.168.24.1:8787/rhosp14/openstack-heat-api:2018-11-26.1                    "kolla_start"            5 weeks ago         Up 28 hours (healthy)                             heat_api
+[root@controller-1 ~]# lscgroup |grep b25aa6e03826
+cpu,cpuacct:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+cpu,cpuacct:/system.slice/var-lib-docker-containers-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a-shm.mount
+memory:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+memory:/system.slice/var-lib-docker-containers-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a-shm.mount
+pids:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+pids:/system.slice/var-lib-docker-containers-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a-shm.mount
+cpuset:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+blkio:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+blkio:/system.slice/var-lib-docker-containers-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a-shm.mount
+freezer:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+hugetlb:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+perf_event:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+net_cls,net_prio:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+devices:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+devices:/system.slice/var-lib-docker-containers-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a-shm.mount
+[root@controller-1 ~]# systemctl status docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+● docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope - libcontainer container b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a
+   Loaded: loaded (/run/systemd/system/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope; static; vendor preset: disabled)
+  Drop-In: /run/systemd/system/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope.d
+           └─50-BlockIOAccounting.conf, 50-CPUAccounting.conf, 50-DefaultDependencies.conf, 50-Delegate.conf, 50-Description.conf, 50-MemoryAccounting.conf, 50-Slice.conf
+   Active: active (running) since Thu 2019-01-03 15:29:45 UTC; 1 day 4h ago
+    Tasks: 11
+   Memory: 99.6M
+   CGroup: /system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+           ├─  8102 /usr/sbin/httpd -DFOREGROUND
+           ├─  9682 heat_api_wsgi   -DFOREGROUND
+           ├─579839 /usr/sbin/httpd -DFOREGROUND
+           ├─579961 /usr/sbin/httpd -DFOREGROUND
+           ├─579962 /usr/sbin/httpd -DFOREGROUND
+           ├─580574 /usr/sbin/httpd -DFOREGROUND
+           ├─580788 /usr/sbin/httpd -DFOREGROUND
+           └─633107 /usr/sbin/httpd -DFOREGROUND
+[root@controller-1 ~]# cat /proc/8102/cgroup
+11:devices:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+10:net_prio,net_cls:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+9:perf_event:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+8:hugetlb:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+7:freezer:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+6:blkio:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+5:cpuset:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+4:pids:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+3:memory:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+2:cpuacct,cpu:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+1:name=systemd:/system.slice/docker-b25aa6e03826d42d0d4ad6788365cc7e1db006f24278c57cc4160f5fd1b19d2a.scope
+~~~
+
+From this data, we can see the controllers used, what processes are within scope and their consumption.
+To have a better view of of ressource consumption we can use `systemd-cgtop`.
+
+~~~
+Path                                                                                                                                                                        Tasks   %CPU   Memory  Input/s Output/s
+/                                                                                                                                                                             127  167.6    10.3G        -        -
+/system.slice                                                                                                                                                                   -  157.2     9.6G        -        -
+/system.slice/docker-496d3166d70c00085153dbb41193037562ea514211d88f1f2bdfdf779f62be59.scope                                                                                    15   87.0   220.9M        -        -
+/system.slice/docker-2792b89c98b2f73cbe269d3f15d5ad2e9dc63ea24b134176e9cfd6d4a749a154.scope                                                                                     1   22.8    34.0M        -        -
+/system.slice/docker-0351e060573f32434a3cca2293a26172cc39daafeb237d3af089bb2e48220b44.scope                                                                                     5    8.2     7.0M        -        -
+/user.slice                                                                                                                                                                     7    8.0   718.6M        -        -
+/system.slice/docker-21c77edcc723293603ad099d03b5e55a17b39ab2dfe9b95733bbbfd60adfd032.scope                                                                                     2    2.9   115.9M        -        -
+/system.slice/docker-92a0b901c3cfe86e25c6e5eadf43a05806b917b7b8f442121b761a31e9fc4f5d.scope                                                                                     2    2.5   185.7M        -        -
+/system.slice/docker-550af8a36618607fc43613c87db62e1b641e7224f92f8c7ff1e4855b88d86a0b.scope                                                                                     4    2.4   167.8M        -        -
+/system.slice/docker-597f92ba5d7e7f7e5d3f4602cfe7113247550f514c4b0607ae3cd1e85f326357.scope                                                                                     2    2.0    83.7M        -        -
+/system.slice/docker-04474d1374e4d0694e3fe4ab6092b97382b4d403b43fd313bed1dac5aa25155c.scope                                                                                     5    2.0   347.8M        -        -
+(...)
+~~~
+
+If we mount the cgroup directories, we will have a better view on what can be done with them.
+Here we will make a dir and mount:
+~~~
+[root@localhost ~]# mkdir -p /cgroup/blkio
+[root@localhost ~]# mount -t cgroup -o blkio blkio /cgroup/blkio
+~~~
+
+cgroups have special files which can be used for various reasons.
+Here is what you see when you mount blkio cgroup (they all have these mechanism, just a bit different to match the controller):
+~~~
+[root@localhost ~]# ll /cgroup/blkio/
+total 0
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.io_merged
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.io_merged_recursive
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.io_queued
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.io_queued_recursive
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.io_service_bytes
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.io_service_bytes_recursive
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.io_serviced
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.io_serviced_recursive
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.io_service_time
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.io_service_time_recursive
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.io_wait_time
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.io_wait_time_recursive
+-rw-r--r--. 1 root root 0 Jan  3 21:19 blkio.leaf_weight
+-rw-r--r--. 1 root root 0 Jan  3 21:19 blkio.leaf_weight_device
+--w-------. 1 root root 0 Jan  3 21:19 blkio.reset_stats
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.sectors
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.sectors_recursive
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.throttle.io_service_bytes
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.throttle.io_service_bytes_recursive
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.throttle.io_serviced
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.throttle.io_serviced_recursive
+-rw-r--r--. 1 root root 0 Jan  3 21:19 blkio.throttle.read_bps_device
+-rw-r--r--. 1 root root 0 Jan  3 21:19 blkio.throttle.read_iops_device
+-rw-r--r--. 1 root root 0 Jan  3 21:19 blkio.throttle.write_bps_device
+-rw-r--r--. 1 root root 0 Jan  3 21:19 blkio.throttle.write_iops_device
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.time
+-r--r--r--. 1 root root 0 Jan  3 21:19 blkio.time_recursive
+-rw-r--r--. 1 root root 0 Jan  3 21:19 blkio.weight
+-rw-r--r--. 1 root root 0 Jan  3 21:19 blkio.weight_device
+-rw-r--r--. 1 root root 0 Jan  3 21:19 cgroup.clone_children
+-rw-r--r--. 1 root root 0 Jan  3 21:19 cgroup.procs
+-r--r--r--. 1 root root 0 Jan  3 21:19 cgroup.sane_behavior
+-rw-r--r--. 1 root root 0 Jan  3 21:19 notify_on_release
+-rw-r--r--. 1 root root 0 Jan  3 21:19 release_agent
+drwxr-xr-x. 2 root root 0 Jan  4 15:40 system.slice
+-rw-r--r--. 1 root root 0 Jan  3 21:19 tasks
+~~~
+
+Some are more obvious like the stat/accounting files:
+- merged
+- queued
+- serviced
+- etc
+
+There are the configuration files to do the limiting mechanics:
+- blkio.throttle.*
+
+We can see the system.slice subgroup within the parent, this directory will contain all of the same files minus the release_agent.
+
+Lastly some control files:
+- tasks: list of tasks (by PID) attached to that cgroup.  This list
+  is not guaranteed to be sorted.  Writing a thread ID into this file
+  moves the thread into this cgroup.
+- cgroup.procs: list of thread group IDs in the cgroup.  This list is
+  not guaranteed to be sorted or free of duplicate TGIDs, and userspace
+  should sort/uniquify the list if this property is required.
+  Writing a thread group ID into this file moves all threads in that
+  group into this cgroup.
+- notify_on_release flag: run the release agent on exit?
+- release_agent: the path to use for release notifications (this file
+  exists in the top cgroup only)
+
+
+You can go the examples bellow to see more information how we can manually use these.
 
 ### Capabilities
 
@@ -85,6 +316,10 @@ Here we will mostly focus on Docker specific tooling as this is what is currentl
 ### Tripleo
 Since the Openstack 12 realease, we have been shipping Tripleo (OoO) with containers on the overcloud nodes (14 will also have these on the undercloud).
 The container runtime currently used by OoO is containerd (dockerd), however we use a wrapper called Paunch to manage the containers.
+
+The reason behind using containers is likely more involved then simply foolowing community trends and all. However, since we still use puppet, heat and bash scripts to configure the containers this isn't a clear simplicity win.
+
+The director installs the core OpenStack Platform services as containers on the overcloud. The templates for the containerized services are located in the "/usr/share/openstack-tripleo-heat-templates/docker/services/". These templates reference their respective composable service templates. Example keystone templates will still have something like `type: ../../puppet/services/keystone.yaml` (type baiscally sources the outputs data).
 
 #### Kolla Containers
 
@@ -174,6 +409,14 @@ docker run --name keystone-uvb40g2t --detach=true --env=KOLLA_CONFIG_STRATEGY=CO
 ~~~
 
 #### Configuration steps
+
+Tasks to run on the service’s configuration container. All tasks are grouped into steps to help the director perform a staged deployment.
+
+Step 1 - Load balancer configuration
+Step 2 - Core services (Database, Redis)
+Step 3 - Initial configuration of OpenStack Platform service
+Step 4 - General OpenStack Platform services configuration
+Step 5 - Service activation
 
 #### Kuryr
 

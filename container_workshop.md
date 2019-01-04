@@ -223,17 +223,10 @@ Path                                                                            
 (...)
 ~~~
 
-If we mount the cgroup directories, we will have a better view on what can be done with them.
-Here we will make a dir and mount:
-~~~
-[root@localhost ~]# mkdir -p /cgroup/blkio
-[root@localhost ~]# mount -t cgroup -o blkio blkio /cgroup/blkio
-~~~
-
 cgroups have special files which can be used for various reasons.
-Here is what you see when you mount blkio cgroup (they all have these mechanism, just a bit different to match the controller):
+Here is what you see whithin the structure for blkio cgroup (they all have these mechanism, just a bit different to match the controller):
 ~~~
-[root@localhost ~]# ll /cgroup/blkio/
+[root@localhost ~]# ll /sys/fs/cgroup/blkio/
 total 0
 -r--r--r--. 1 root root 0 Jan  3 21:19 blkio.io_merged
 -r--r--r--. 1 root root 0 Jan  3 21:19 blkio.io_merged_recursive

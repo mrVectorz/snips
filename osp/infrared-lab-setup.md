@@ -58,8 +58,9 @@ infrared virsh --host-address $YOURLABSERVER --host-key ~/.ssh/key_sbr_lab --top
 
 Install the undercloud :
 
+You have to set the container registry namespace to the version required, as default has now changed to rhosp14
 ```shell
-infrared tripleo-undercloud --version 13 --images-task=rpm --build ga
+infrared tripleo-undercloud --version 13 --registry-namespace rhosp13 --images-task=rpm --build ga
 ```
 
 Once this is deployment, depending on the size of you lab server (typical is 64Gb), I recommend to lower the worker counts to 1 to limit memory usage:

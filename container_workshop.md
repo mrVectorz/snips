@@ -295,6 +295,9 @@ You can go the examples bellow to see more information how we can manually use t
 For further reading and information on this subject please see the following:
 - [https://www.kernel.org/doc/Documentation/cgroup-v1/cgroups.txt](https://www.kernel.org/doc/Documentation/cgroup-v1/cgroups.txt)
 - [https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/resource_management_guide/](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/resource_management_guide/)
+- [https://www.kernel.org/doc/Documentation/cgroup-v1/](https://www.kernel.org/doc/Documentation/cgroup-v1/)
+
+
 ### Capabilities
 
 ### Copy-on-Write
@@ -553,6 +556,40 @@ Things to add into this example:
 - selinux
 
 ##### cgroups
+Let's create some of the cgroups to limit resources to our fake container.
+
+~~~
+cgcreate -a mmethot:mmethot -t mmethot:mmethot -g cpuset:testing
+echo 2-4 > /sys/fs/cgroup/cpuset/testing/cpuset.cpus
+echo 0 > /sys/fs/cgroup/cpuset/testing/cpuset.mems
+su - mmethot
+cgexec -g cpuset:testing sysbench cpu --threads=100 --max-requests=1000000000 run
+~~~
+
+Validating with `top` we see that only the cpus we selected were used:
+~~~
+top - 09:45:13 up 1 day, 56 min,  1 user,  load average: 26.97, 6.96, 2.46
+Tasks: 282 total,   1 running, 281 sleeping,   0 stopped,   0 zombie
+%Cpu0  :  1.0 us,  0.3 sy,  0.0 ni, 98.0 id,  0.0 wa,  0.3 hi,  0.3 si,  0.0 st
+%Cpu1  :  0.3 us,  0.7 sy,  0.0 ni, 99.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu2  : 99.7 us,  0.0 sy,  0.0 ni,  0.0 id,  0.0 wa,  0.3 hi,  0.0 si,  0.0 st
+%Cpu3  :100.0 us,  0.0 sy,  0.0 ni,  0.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu4  :100.0 us,  0.0 sy,  0.0 ni,  0.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu5  :  0.3 us,  0.0 sy,  0.0 ni, 99.3 id,  0.0 wa,  0.3 hi,  0.0 si,  0.0 st
+%Cpu6  :  1.0 us,  0.7 sy,  0.0 ni, 98.0 id,  0.0 wa,  0.3 hi,  0.0 si,  0.0 st
+%Cpu7  :  1.0 us,  0.3 sy,  0.0 ni, 98.7 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+MiB Mem :  15473.9 total,   8703.8 free,   3252.8 used,   3517.2 buff/cache
+MiB Swap:   7808.0 total,   7808.0 free,      0.0 used.  11420.2 avail Mem
+~~~
+
+At which point we could do what we did above:
+~~~
+cgexec -g cpuset:testing unshare --mount --uts --ipc --net --pid --fork bash
+# then everything else
+# Any processes ran from then on are limited to the 3 cores
+~~~
+
+We could add all the controllers we want to make use of on this container.
 
 #### Pauch debug logs
 We can set debug logs in most of the openstack components fairly easily.

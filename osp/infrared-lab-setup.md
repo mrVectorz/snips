@@ -68,7 +68,7 @@ https://github.com/mrVectorz/snips/blob/master/osp/low_memory_uc.sh
 
 Backup the UC node :
 ```shell
-tripleo-undercloud --snapshot-backup yes
+infrared tripleo-undercloud --snapshot-backup yes
 ```
 
 Launch a partial deployment, it will only register, introspect and tag nodes :

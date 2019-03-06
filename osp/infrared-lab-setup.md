@@ -74,7 +74,7 @@ tripleo-undercloud --snapshot-backup yes
 Launch a partial deployment, it will only register, introspect and tag nodes :
 
 ```shell
-infrared tripleo-overcloud --deployment-files virt --version 13 --introspect yes --tagging yes --deploy no --post no
+infrared tripleo-overcloud --deployment-files virt --version 13 --introspect yes --tagging yes --deploy no
 ```
 
 Alternatively, deploy the OC aswell:

@@ -53,7 +53,7 @@ infrared virsh --host-address $YOURLABSERVER --host-key ~/.ssh/key_sbr_lab --cle
 Prepare the environment :
 
 ```shell
-infrared virsh --host-address $YOURLABSERVER --host-key ~/.ssh/key_sbr_lab --topology-nodes undercloud:1,controller:3,compute:1 -e override.controller.cpu=4 -e override.controller.memory=12288 -e override.undercloud.disks.disk1.size=150G --image-url url_to_download_/7.5/.../rhel-guest-image....x86_64.qcow2
+infrared virsh --host-address $YOURLABSERVER --host-key ~/.ssh/key_sbr_lab --topology-nodes undercloud:1,controller:3,compute:1 -e override.controller.cpu=6 -e override.controller.memory=12288 -e override.undercloud.disks.disk1.size=200G --image-url url_to_download_/7.5/.../rhel-guest-image....x86_64.qcow2
 ```
 
 Install the undercloud :
@@ -66,10 +66,15 @@ infrared tripleo-undercloud --version 13 --registry-namespace rhosp13 --images-t
 Once this is deployment, depending on the size of you lab server (typical is 64Gb), I recommend to lower the worker counts to 1 to limit memory usage:
 https://github.com/mrVectorz/snips/blob/master/osp/low_memory_uc.sh
 
+Backup the UC node :
+```shell
+tripleo-undercloud --snapshot-backup yes
+```
+
 Launch a partial deployment, it will only register, introspect and tag nodes :
 
 ```shell
-infrared tripleo-overcloud --deployment-files virt --version 13 --introspect yes --tag yes --deploy no --post no
+infrared tripleo-overcloud --deployment-files virt --version 13 --introspect yes --tagging yes --deploy no --post no
 ```
 
 Alternatively, deploy the OC aswell:

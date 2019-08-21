@@ -406,6 +406,64 @@ To conclude this overview of Paunch, we will dump the command used to start the 
 docker run --name keystone-uvb40g2t --detach=true --env=KOLLA_CONFIG_STRATEGY=COPY_ALWAYS --net=host --health-cmd=/openstack/healthcheck --privileged=false --restart=always --volume=/etc/hosts:/etc/hosts:ro --volume=/etc/localtime:/etc/localtime:ro --volume=/etc/pki/ca-trust/extracted:/etc/pki/ca-trust/extracted:ro --volume=/etc/pki/ca-trust/source/anchors:/etc/pki/ca-trust/source/anchors:ro --volume=/etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt:ro --volume=/etc/pki/tls/certs/ca-bundle.trust.crt:/etc/pki/tls/certs/ca-bundle.trust.crt:ro --volume=/etc/pki/tls/cert.pem:/etc/pki/tls/cert.pem:ro --volume=/dev/log:/dev/log --volume=/etc/ssh/ssh_known_hosts:/etc/ssh/ssh_known_hosts:ro --volume=/etc/puppet:/etc/puppet:ro --volume=/var/log/containers/keystone:/var/log/keystone --volume=/var/log/containers/httpd/keystone:/var/log/httpd --volume=/var/lib/kolla/config_files/keystone.json:/var/lib/kolla/config_files/config.json:ro --volume=/var/lib/config-data/puppet-generated/keystone/:/var/lib/kolla/config_files/src:ro 192.168.24.1:8787/rhosp14/openstack-keystone:2018-11-26.1
 ~~~
 
+Another useful thing we can do is for example list all containers that should autostart:
+~~~
+# jq -r '. | to_entries | .[] | select(.value.restart) | .key' /var/lib/tripleo-config/docker-container-startup-config-step_*.json
+memcached
+clustercheck
+horizon
+iscsid
+keystone
+keystone_cron
+aodh_api
+aodh_evaluator
+aodh_listener
+aodh_notifier
+ceilometer_agent_central
+ceilometer_agent_notification
+cinder_api
+cinder_scheduler
+glance_api
+heat_api
+heat_api_cfn
+heat_api_cron
+heat_engine
+logrotate_crond
+neutron_api
+neutron_dhcp
+neutron_l3_agent
+neutron_metadata_agent
+neutron_ovs_agent
+nova_api
+nova_api_cron
+nova_conductor
+nova_consoleauth
+nova_metadata
+nova_placement
+nova_scheduler
+nova_vnc_proxy
+panko_api
+swift_account_auditor
+swift_account_reaper
+swift_account_replicator
+swift_account_server
+swift_container_auditor
+swift_container_replicator
+swift_container_server
+swift_container_updater
+swift_object_auditor
+swift_object_expirer
+swift_object_replicator
+swift_object_server
+swift_object_updater
+swift_proxy
+swift_rsync
+cinder_api_cron
+gnocchi_api
+gnocchi_metricd
+gnocchi_statsd
+~~~
+
 #### Configuration steps
 
 Tasks to run on the service’s configuration container. All tasks are grouped into steps to help the director perform a staged deployment.

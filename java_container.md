@@ -23,7 +23,7 @@ RUN yum -y install icedtea-web
 CMD [ "/usr/bin/xclock" ]
 ~~~
 
-Note that the xclock command is only used to validate if the process works.
+Note: xclock command is only used to validate if the process works.
 
 - building the image with `buildah bud -t xclockimage .`
 - selinux may give you gripes, in the past `setenforce 0` needed to be applied to avoid some fuss
@@ -31,7 +31,11 @@ Note that the xclock command is only used to validate if the process works.
 ## Running the javaws applet
 First download a new viewer.jnlp (iDrac example) file from the BMC, once done we start the container with the following:
 ~~~
-podman run -ti -e DISPLAY --privileged --rm -v /run/user/${UID}/gdm/Xauthority:/run/user/0/gdm/Xauthority:Z -v /home/${USER}/Downloads/viewer.jnlp:/root/viewer.jnlp:Z --net=host localhost/xclockimage javaws.itweb /root/viewer.jnlp
+podman run -ti -e DISPLAY --privileged --rm \
+ -v /run/user/${UID}/gdm/Xauthority:/run/user/0/gdm/Xauthority:Z \
+ -v /home/${USER}/Downloads/viewer.jnlp:/root/viewer.jnlp:Z \
+ --net=host \
+ localhost/xclockimage javaws.itweb /root/viewer.jnlp
 ~~~
 
 Parameters:

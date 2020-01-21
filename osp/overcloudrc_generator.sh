@@ -18,7 +18,7 @@ fi
 
 cat << EOF > $rc_file
 # Clear any old environment that may conflict.
-for key in \$( set | awk '{FS="="}  /^OS_/ {print \$1}' ); do unset \$key ; done'
+for key in \$( set | awk '{FS="="}  /^OS_/ {print \$1}' ); do unset \$key ; done
 export OS_NO_CACHE=True
 export COMPUTE_API_VERSION=1.1
 export OS_USERNAME=admin

@@ -63,7 +63,7 @@ def search_file(yaml):
 
 def get_role_params(file):
     with open(file, "r") as f:
-        data = yaml.load(f)
+        data = yaml.load(f, Loader=yaml.FullLoader)
     params = []
     for para in data['resources']['RoleParametersValue']['properties']['value']['map_replace'][1]['values'].keys():
         params.append(para)
@@ -76,7 +76,7 @@ for p in paths:
     files = files + find_files(path+p)
 
 # Get all available params
-para = [get_role_params(file) for file in files]
+para = [get_role_params(f) for f in files]
 para = list(itertools.chain(*para))
 para.sort()
 

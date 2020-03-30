@@ -28,6 +28,7 @@ else:
 paths = [
     "docker/services/",
     "puppet/services/",
+    "deployment/",
     "extraconfig/services/"
 ]
 

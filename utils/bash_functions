@@ -1,0 +1,55 @@
+#!/bin/bash
+
+function rhpaste() {
+  # usage rhpaste <filename> or via pipe e.g.: git show|rhpaste
+  curl -L -w "%{url_effective}\n" -s -o /dev/null -X POST -d "format=text&poster=Anonymous&paste=Send&expiry=d" http://pastebin.test.redhat.com/pastebin.php --data-urlencode code2@${1:--}
+}
+
+function rh_get_nasa() {
+  python -c 'import requests; print(requests.get("http://sbr-stack.etherpad.corp.redhat.com/ep/pad/export/NASA-meeting/latest?format=txt").text)' | less
+}
+
+function gg-ssh() {
+  ip=$1
+  echo "Checking host connectivity: $ip port 22"
+
+  up=false
+  while [ $up != true ] ; do
+    result=$(nc -v -w 1 -z $ip 22 2>&1 | egrep -o "(Connected|Connection\ \w*)")
+    case "$result" in
+      Connected)
+        echo "`timestamp` Connection Successful"
+        up=true
+      ;;
+      "Connection timed")
+        echo "`timestamp` Connection Timedout"
+      ;;
+      "Connection refused")
+        echo "`timestamp` Connection Refused"
+      ;;
+    esac
+    sleep 1
+  done
+  ssh $ip
+}
+
+function cool_curl() {
+curl "$1" -s -o /dev/null -w \
+"response_code: %{http_code}\n
+dns_time: %{time_namelookup}
+connect_time: %{time_connect}
+pretransfer_time: %{time_pretransfer}
+starttransfer_time: %{time_starttransfer}
+total_time: %{time_total}
+"
+}
+
+function dl_source() {
+  d=$(echo $1 | awk 'BEGIN {FS="/"} {print $NF}')
+  mkdir $d && cd $d
+  curl -s "$1" --output $d
+  rpm2cpio $d | cpio -ivmd
+  for i in $(ls -l | grep ".tar.gz"); do
+    tar xvf $i
+  done
+}

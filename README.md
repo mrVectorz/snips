@@ -7,6 +7,6 @@ Few openstack scripts I want public facing so clients can easily get them.
 #### UTILS
 Quick one off scripts that can be used in various environments.
 
-#### UTILS
-Jupyter environment setup.
+#### jupyter
+Jupyter notebooks environment setup.
 

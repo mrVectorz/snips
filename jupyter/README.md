@@ -1,6 +1,6 @@
 # Jupyter Notebook Setup
----
-Made this so next time I delete my home accidently I don't have to rediscover how to do this all over again
+
+Made this so next time I delete my home accidently I don't have to rediscover how to do this all over again.
 Environment python 3.7 Fedora 31
 
 ### Setup

@@ -28,6 +28,7 @@ else:
 paths = [
     "docker/services/",
     "puppet/services/",
+    "deployment/",
     "extraconfig/services/"
 ]
 
@@ -62,11 +63,17 @@ def search_file(yaml):
 
 def get_role_params(file):
     with open(file, "r") as f:
-        data = yaml.load(f)
+        data = yaml.load(f, Loader=yaml.FullLoader)
     params = []
     for para in data['resources']['RoleParametersValue']['properties']['value']['map_replace'][1]['values'].keys():
         params.append(para)
-    return params
+    for p in data['parameters'].keys():
+        try:
+            if data['parameters'][p]['tags']:
+                params.append(p)
+        except:
+            continue
+    return sorted(set(params))
 
 
 # Get all files that have "RoleParametersValue"
@@ -75,12 +82,11 @@ for p in paths:
     files = files + find_files(path+p)
 
 # Get all available params
-para = [get_role_params(file) for file in files]
-para = list(itertools.chain(*para))
+para = [ (f, get_role_params(f)) for f in files]
 para.sort()
 
-o = ""
-for p in para:
-    if o != p:
-        print(p)
-    o = p
+for f in para:
+    print(f[0])
+    for p in f[1]:
+        print("\t%s" % p)
+    print("")

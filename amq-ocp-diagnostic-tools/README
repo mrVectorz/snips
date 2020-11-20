@@ -1,0 +1,103 @@
+gather-ocp-diagnostic-data.sh captures a series of thread dumps, heap dumps and application logs against a spring-boot java application. 
+
+"--help" provides the syntax
+
+Something like the following is the expected output of the script:
+
+
+LOCAL: Creating diagnostics-2018-03-21--20-49-30
+==========================================================
+ * Created folder diagnostics-2018-03-21--20-49-30.
+
+LOCAL: Copying scripts to remote pod fis-spring-boot-3-xpfb4
+==========================================================
+building file list ... done
+created directory /home/jboss/diagnostics-2018-03-21--20-49-30
+remote-scripts/
+remote-scripts/capture-data.sh
+remote-scripts/clean.sh
+remote-scripts/ocp_high_cpu_linux_jstack.sh
+
+sent 2728 bytes  received 92 bytes  5640.00 bytes/sec
+total size is 2439  speedup is 0.86
+
+ * Scripts copied to fis-spring-boot-3-xpfb4
+
+LOCAL: Executing capture-data.sh on remote pod 'fis-spring-boot-3-xpfb4' for process id keyword 'spring-boot'
+==========================================================
+1 hi
+ * Gathering data for Process id=1  
+
+POD: Capturing sequence of thread dumps 
+---------------------------------------
+1
+thread dump # 1
+Sleeping...
+thread dump # 2
+Sleeping...
+thread dump # 3
+Sleeping...
+thread dump # 4
+Sleeping...
+thread dump # 5
+Sleeping...
+thread dump # 6
+Sleeping...
+thread dump # 7
+Sleeping...
+thread dump # 8
+Sleeping...
+thread dump # 9
+Sleeping...
+thread dump # 10
+Done.
+
+POD: Taking heap dump
+---------------------------------------
+Dumping heap to /home/jboss/diagnostics-2018-03-21--20-49-30/spring-boot-dump.hprof ...
+Heap dump file created
+Done.
+
+
+ * Remote execution complete.
+
+LOCAL: Copying data captured from the remote pod to local diagnostics-2018-03-21--20-49-30
+==========================================================
+receiving file list ... done
+diagnostics-2018-03-21--20-49-30/high-cpu-tdump.out
+diagnostics-2018-03-21--20-49-30/high-cpu.out
+diagnostics-2018-03-21--20-49-30/spring-boot-dump.hprof
+diagnostics-2018-03-21--20-49-30/remote-scripts/
+diagnostics-2018-03-21--20-49-30/remote-scripts/capture-data.sh
+diagnostics-2018-03-21--20-49-30/remote-scripts/clean.sh
+diagnostics-2018-03-21--20-49-30/remote-scripts/ocp_high_cpu_linux_jstack.sh
+
+sent 158 bytes  received 40702862 bytes  27135346.67 bytes/sec
+total size is 40697324  speedup is 1.00
+
+ * Remote copy completed. Deleting diagnostics-2018-03-21--20-49-30 on fis-spring-boot-3-xpfb4. 
+ * Removing diagnostics-2018-03-21--20-49-30 from fis-spring-boot-3-xpfb4.
+ * Remove diagnostics-2018-03-21--20-49-30 removed.
+
+Downloading application log file
+==========================================================
+
+ * Application logs downloaded.
+
+LOCAL: Compressing local diagnostics-2018-03-21--20-49-30
+==========================================================
+a diagnostics-2018-03-21--20-49-30
+a diagnostics-2018-03-21--20-49-30/application.log
+a diagnostics-2018-03-21--20-49-30/high-cpu-tdump.out
+a diagnostics-2018-03-21--20-49-30/high-cpu.out
+a diagnostics-2018-03-21--20-49-30/remote-scripts
+a diagnostics-2018-03-21--20-49-30/spring-boot-dump.hprof
+a diagnostics-2018-03-21--20-49-30/remote-scripts/capture-data.sh
+a diagnostics-2018-03-21--20-49-30/remote-scripts/clean.sh
+a diagnostics-2018-03-21--20-49-30/remote-scripts/ocp_high_cpu_linux_jstack.sh
+
+ * Created /Users/sjavurek/Fuse/FIS/v2/java-ocp-diagnostic-tools/diagnostics-2018-03-21--20-49-30.tgz. Please attach to support case.
+
+LOCAL: Remove local diagnostics-2018-03-21--20-49-30
+==========================================================
+ * Local diagnostics-2018-03-21--20-49-30 removed.

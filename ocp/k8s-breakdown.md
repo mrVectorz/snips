@@ -14,25 +14,25 @@ Everything, ie all logic, goes through the [kube API](https://kubernetes.io/docs
 
 The API itself can be broken down in many "endpoints", which are different ressources. There are default/core ressources and then custom ones which can be created by operators.
 A short list of the basic resource types APIs
-- Workload
-	Workloads resources are responsible for managing and running your containers on the cluster. Containers are created by Controllers through Pods. Pods run Containers and provide environmental dependencies such as shared or persistent storage Volumes and Configuration or Secret data injected into the container.
-  Examples: Deployments, StatefulSets, Jobs
+- **Workload**  
+   Workloads resources are responsible for managing and running your containers on the cluster. Containers are created by Controllers through Pods. Pods run Containers and provide environmental dependencies such as shared or persistent storage Volumes and Configuration or Secret data injected into the container.  
+   Examples: Deployments, StatefulSets, Jobs
 
-- Service
-	Service API resources are responsible for stitching your workloads together into an accessible Loadbalanced Service. By default, Workloads are only accessible within the cluster, and they must be exposed externally using a either a *LoadBalancer* or *NodePort* Service. For development, internally accessible Workloads can be accessed via proxy through the api master using the kubectl proxy command.
-	Examples: Services, Ingress
+- **Service**  
+   Service API resources are responsible for stitching your workloads together into an accessible Loadbalanced Service. By default, Workloads are only accessible within the cluster, and they must be exposed externally using a either a *LoadBalancer* or *NodePort* Service. For development, internally accessible Workloads can be accessed via proxy through the api master using the kubectl proxy command.  
+   Examples: Services, Ingress
 
-- Config and Storage
-	Config and Storage resources are responsible for injecting data into your applications and persisting data externally to your container.
-	Examples: ConfigMaps, Secrets, Volumes
+- **Config and Storage**  
+   Config and Storage resources are responsible for injecting data into your applications and persisting data externally to your container.  
+   Examples: ConfigMaps, Secrets, Volumes
 
-- Metadata
-	Metadata resources are responsible for configuring behavior of your other Resources within the Cluster.
-	Examples: HorizontalPodAutoscaler (replicaCount Scaling), PodDisruptionBudget, Event
+- **Metadata**  
+   Metadata resources are responsible for configuring behavior of your other Resources within the Cluster.  
+   Examples: HorizontalPodAutoscaler (replicaCount Scaling), PodDisruptionBudget, Event
 
-- Cluster
-	Cluster resources are responsible for defining configuration of the cluster itself, and are generally only used by cluster operators.
-	Example: Node, Namespace, ServiceAccount
+- **Cluster**  
+   Cluster resources are responsible for defining configuration of the cluster itself, and are generally only used by cluster operators.  
+   Example: Node, Namespace, ServiceAccount
 
 
 ## Nodes

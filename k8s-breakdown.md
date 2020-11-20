@@ -46,7 +46,7 @@ A critical component of the control plane is the **Node Controller**.
 - Keeps the list of available machines (compares health).
 - Healthchecks (NodeReady and NodeStatus) monitors node availability via heartbeats.
 
-Note: kubelet is responsible for creating and updating the NodeStatus and a Lease object (runs the healthbearts -ish)
+Note: kubelet is responsible for creating and updating the NodeStatus and a Lease object (runs the heartbeats -ish)
 
 
 ## Controllers

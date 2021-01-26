@@ -8,6 +8,7 @@ import urllib3
 import json
 import os
 import gzip
+import datetime
 from urllib3.util import make_headers
 from requests_oauthlib import OAuth2Session
 from six.moves.urllib_parse import urlparse, parse_qs, urlencode
@@ -23,6 +24,7 @@ PASSWORD = 'xSAho-fjU4y-srLg4-WFXXV'
 
 # host to have its metrics exported, change to desired node
 select_host = "openshift-worker-1.example.com"
+# From how long ago are we pulling data for, example 5 minutes prior when this is executed
 timeRange = "[5m]"
 
 # Gather authorization APIs info
@@ -30,6 +32,22 @@ oauth_server_info = requests.get('{}/.well-known/oauth-authorization-server'.for
 openshift_oauth = OAuth2Session(client_id='openshift-challenging-client')
 authorization_url, state = openshift_oauth.authorization_url(oauth_server_info['authorization_endpoint'], state="1", code_challenge_method='S256')
 basic_auth_header = make_headers(basic_auth='{}:{}'.format(USERNAME, PASSWORD))
+
+# Creating the directory
+# TODO: try catch exceptions
+dataDir = "metrics_{}_{}".format(select_host, datetime.date.today())
+os.mkdir(dataDir)
+
+# Creating the graphite config for later ingest: storage-schemas.conf
+graphiteConfig = [
+        '[commuting]',
+        'priority = 100',
+        'pattern = ^{}\..*'.format(select_host),
+        'retentions = 10s:7d,1m:90d']
+with open('./{}/storage-schemas.conf'.format(dataDir), 'w') as c:
+    for line in graphiteConfig:
+        c.write(line + '\n')
+
 
 # Request auth using simple credentials
 challenge_response = openshift_oauth.get(
@@ -85,7 +103,7 @@ for r in routes['items']:
     except:
         continue
 
-def GetMetrixNames(url, HEADERS):
+def GetMetricsNames(url, HEADERS):
     response = requests.get('{0}/api/v1/label/__name__/values'.format(url), verify=False, headers=HEADERS)
     names = response.json()['data']
     return names
@@ -93,10 +111,7 @@ def GetMetrixNames(url, HEADERS):
 url = "https://{}".format(promo_route)
 HEADERS = {'authorization': '{} {}'.format(token_type, access_token)}
 
-metricNames = GetMetrixNames(url, HEADERS)
-
-dataDir = "metrics_{}".format(select_host)
-os.mkdir(dataDir)
+metricNames = GetMetricsNames(url, HEADERS)
 
 for metricName in metricNames:
     if metricName[0:4] != 'node':
@@ -115,8 +130,6 @@ for metricName in metricNames:
     if len(data['data']['result']) > 1:
         with gzip.open('./{}/{}.json.gz'.format(dataDir, metricName), 'w') as f:
             f.write(json_str.encode('utf-8'))
-        #with open('./{}/{}.json'.format(dataDir, metricName), 'w') as f:
-        #    json.dump(data, f)
 
 print("INFO: Completed dump of promotheus metrics for host {} over the past {}".format(select_host, timeRange))
 print("INFO: Suggesting creating a tarball of the {} directory".format(dataDir))

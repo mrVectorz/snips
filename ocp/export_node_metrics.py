@@ -1,17 +1,16 @@
 # Marc Methot (mmethot)
 # Built upon k8s_auth.py anisble module for oauth
-# Exports data from oc promo for a specific node in csv type
-# `python export_node_metrics.py | gzip -c > node_metrics_$(date +"%Y_%m_%d_%I_%M_%p").gz`
+# Exports data from oc promo for a specific node in json format
+# 
 
 import requests
 import urllib3
-import sys
+import json
+import os
+import gzip
 from urllib3.util import make_headers
 from requests_oauthlib import OAuth2Session
 from six.moves.urllib_parse import urlparse, parse_qs, urlencode
-from pprint import pprint
-import json
-import csv
 
 # Self signed certs used, disabling warning spam
 urllib3.disable_warnings()
@@ -23,7 +22,8 @@ USERNAME = 'kubeadmin'
 PASSWORD = 'xSAho-fjU4y-srLg4-WFXXV'
 
 # host to have its metrics exported, change to desired node
-select_host= "openshift-worker-1.example.com"
+select_host = "openshift-worker-1.example.com"
+timeRange = "[5m]"
 
 # Gather authorization APIs info
 oauth_server_info = requests.get('{}/.well-known/oauth-authorization-server'.format(HOST), verify=False).json()
@@ -89,48 +89,34 @@ def GetMetrixNames(url, HEADERS):
     response = requests.get('{0}/api/v1/label/__name__/values'.format(url), verify=False, headers=HEADERS)
     names = response.json()['data']
     return names
-"""
-Prometheus hourly data as csv.
-"""
 
 url = "https://{}".format(promo_route)
 HEADERS = {'authorization': '{} {}'.format(token_type, access_token)}
-writer = csv.writer(sys.stdout)
 
-metricsNames=GetMetrixNames(url, HEADERS)
-writeHeader=True
-for metricsName in metricsNames:
-     if metricsName[0:4] != 'node':
-         continue
-     # note(mmethot): the double curly brackets is to escape those otherwise format tries to interpret
-     response = requests.get('{0}/api/v1/query'.format(url), verify=False, headers=HEADERS,
-             params={'query': '{metric}{{instance="{host}"}}[5m]'.format(metric=metricsName, host=select_host)})
+metricNames = GetMetrixNames(url, HEADERS)
 
-     if response.status_code  != 200:
-         print("ERROR: Did not get 200 return code on promo query -- {}".format(response))
-         continue
-     results = response.json()['data']['result']
+dataDir = "metrics_{}".format(select_host)
+os.mkdir(dataDir)
 
-     # Example return
-     """
-     [{'metric': {'__name__': 'node_nf_conntrack_entries_limit', 'endpoint': 'https', 'instance': 'openshift-worker-1.example.com', 'job': 'node-exporter', 'namespace': 'openshift-monitoring', 'pod': 'node-exporter-qsm25', 'service': 'node-exporter'}, 'values': [[1611597496.32, '262144'], [1611597511.32, '262144'], [1611597526.32, '262144'], [1611597541.32, '262144'], [1611597556.32, '262144'], [1611597571.32, '262144'], [1611597586.32, '262144'], [1611597601.32, '262144'], [1611597616.32, '262144'], [1611597631.32, '262144'], [1611597646.32, '262144'], [1611597661.32, '262144'], [1611597676.32, '262144'], [1611597691.32, '262144'], [1611597706.32, '262144'], [1611597721.32, '262144'], [1611597736.32, '262144'], [1611597751.32, '262144'], [1611597766.32, '262144'], [1611597781.32, '262144']]}]
-     """
+for metricName in metricNames:
+    if metricName[0:4] != 'node':
+        continue
+    # note(mmethot): the double curly brackets is to escape those otherwise format tries to interpret
+    print("INFO: Qerying - {}".format('{metric}{{instance="{host}"}}{t}'.format(metric=metricName, host=select_host, t=timeRange)))
+    response = requests.get('{0}/api/v1/query'.format(url), verify=False, headers=HEADERS,
+            params={'query': '{metric}{{instance="{host}"}}{t}'.format(metric=metricName, host=select_host, t=timeRange)})
 
-     # Build a list of all labelnames used.
-     # gets all keys and discard __name__
-     labelnames = set()
-     for result in results:
-          labelnames.update(result['metric'].keys())
-     # Canonicalize
-     labelnames.discard('__name__')
-     labelnames = sorted(labelnames)
-     # Write the samples.
-     if writeHeader:
-          writer.writerow(['name', 'timestamp', 'value'] + labelnames)
-          writeHeader=False
+    if response.status_code  != 200:
+        print("ERROR: Did not get 200 return code on promo query -- {}".format(response))
+        continue
+    
+    data = response.json()
+    json_str = json.dumps(data)+"\n"
+    if len(data['data']['result']) > 1:
+        with gzip.open('./{}/{}.json.gz'.format(dataDir, metricName), 'w') as f:
+            f.write(json_str.encode('utf-8'))
+        #with open('./{}/{}.json'.format(dataDir, metricName), 'w') as f:
+        #    json.dump(data, f)
 
-     for result in results:
-          l = [result['metric'].get('__name__', '')] + result['values']
-          for label in labelnames:
-              l.append(result['metric'].get(label, ''))
-              writer.writerow(l)
+print("INFO: Completed dump of promotheus metrics for host {} over the past {}".format(select_host, timeRange))
+print("INFO: Suggesting creating a tarball of the {} directory".format(dataDir))

@@ -66,13 +66,16 @@ access_token = auth.json()['access_token']
 print("Type: {}\nToken: {}".format(token_type, access_token))
 
 # Example get all pods (omitted due to having too much ouput)
-#pprint(requests.get('{}/api/v1/pods'.format(HOST), verify=False, headers={'authorization': '{} {}'.format(token_type, access_token)}).json())
+print('Example 0: basically `oc get pods -A -o json`')
+pprint(requests.get('{}/api/v1/pods'.format(HOST), verify=False, headers={'authorization': '{} {}'.format(token_type, access_token)}).json())
 
 # Example get from namespace "openshift-kube-apiserver"
 # https://docs.openshift.com/container-platform/4.6/rest_api/workloads_apis/pod-core-v1.html
-#pprint(requests.get('{}/api/v1/namespaces/openshift-kube-apiserver/pods'.format(HOST), verify=False, headers={'authorization': '{} {}'.format(token_type, access_token)}).json())
+print('Example 1: basically `oc get pods -n openshift-kube-apiserver -o json`')
+pprint(requests.get('{}/api/v1/namespaces/openshift-kube-apiserver/pods'.format(HOST), verify=False, headers={'authorization': '{} {}'.format(token_type, access_token)}).json())
 
 # Example get routes
+print('Example 2: basically `oc get routes -A -o json`')
 routes = requests.get('{}/apis/route.openshift.io/v1/routes'.format(HOST), verify=False, headers={'authorization': '{} {}'.format(token_type, access_token)}).json()
 promo_route = ""
 
@@ -87,5 +90,6 @@ for r in routes['items']:
 
 # Example metric test
 # curl -vk -H 'authorization: token_type access_token' -G https://prometheus-k8s-openshift-monitoring.apps.cluster.example.com/api/v1/label/source_id/values
+print('Example 3: list all available Promotheus labels')
 if promo_route != "":
     pprint(requests.get('https://{}/api/v1/labels'.format(promo_route), verify=False, headers={'authorization': '{} {}'.format(token_type, access_token)}).json())

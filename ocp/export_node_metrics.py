@@ -16,13 +16,13 @@ from six.moves.urllib_parse import urlparse, parse_qs, urlencode
 # Self signed certs used, disabling warning spam
 urllib3.disable_warnings()
 
-#HOST = 'https://master.example.org:8443'
+# Auth server and credentials
 HOST = 'https://openshift-master-0.example.com:6443'
 #HOST = 'https://oauth-openshift.apps.cluster.example.com:6443'
 USERNAME = 'kubeadmin'
-PASSWORD = 'xSAho-fjU4y-srLg4-WFXXV'
+PASSWORD = 'ExamplePassword'
 
-# host to have its metrics exported, change to desired node
+# Host to have its metrics exported, change to desired node
 select_host = "openshift-worker-1.example.com"
 # From how long ago are we pulling data for, example 5 minutes prior when this is executed
 timeRange = "[5m]"

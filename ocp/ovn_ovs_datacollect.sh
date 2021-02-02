@@ -40,11 +40,17 @@ for NODE in ${NODES}; do
   SBDB=$(oc describe ds ovnkube-node -n openshift-ovn-kubernetes | awk '/sb-address/ {gsub(/"/, "", $2); print $2}')
   ARGS="-p /ovn-cert/tls.key -c /ovn-cert/tls.crt -C /ovn-ca/ca-bundle.crt"
 
+  echo "oc -n openshift-ovn-kubernetes exec -t -c ovn-controller ${POD_OVNKUBE} -- ovn-appctl -t /var/run/ovn/ovnsb_db.ctl cluster/status OVN_Southbound"
+  sh -x &>${OUTDIRa}/${NODE}.${POD_OVNKUBE}.ovn-appctl_sbstatus <<< "timeout 30 oc -n openshift-ovn-kubernetes exec -t -c ovn-controller ${POD_OVNKUBE} -- ovn-appctl -t /var/run/ovn/ovnsb_db.ctl cluster/status OVN_Southbound" & PIDS+=($!)
+
   echo "oc -n openshift-ovn-kubernetes exec -t -c ovn-controller ${POD_OVNKUBE} -- ovn-sbctl --db ${SBDB} ${ARGS} show"
   sh -x &>${OUTDIRa}/${NODE}.${POD_OVNKUBE}.ovn-sbctl_show <<< "timeout 30 oc -n openshift-ovn-kubernetes exec -t -c ovn-controller ${POD_OVNKUBE} -- ovn-sbctl --db ${SBDB} ${ARGS} show" & PIDS+=($!)
 
   echo "oc -n openshift-ovn-kubernetes exec -t -c ovn-controller ${POD_OVNKUBE} -- ovn-sbctl --db ${SBDB} ${ARGS} lflow-list"
   sh -x &>${OUTDIRa}/${NODE}.${POD_OVNKUBE}.ovn-sbctl_lflow-list <<< "timeout 30 oc -n openshift-ovn-kubernetes exec -t -c ovn-controller ${POD_OVNKUBE} -- ovn-sbctl --db ${SBDB} ${ARGS} lflow-list" & PIDS+=($!)
+
+  echo "oc -n openshift-ovn-kubernetes exec -t -c ovn-controller ${POD_OVNKUBE} -- ovn-appctl -t /var/run/ovn/ovnnb_db.ctl cluster/status OVN_Northbound"
+  sh -x &>${OUTDIRa}/${NODE}.${POD_OVNKUBE}.ovn-appctl_nbstatus <<< "timeout 30 oc -n openshift-ovn-kubernetes exec -t -c ovn-controller ${POD_OVNKUBE} -- ovn-appctl -t /var/run/ovn/ovnnb_db.ctl cluster/status OVN_Northbound" & PIDS+=($!)
 
   echo "oc -n openshift-ovn-kubernetes exec -t -c ovn-controller ${POD_OVNKUBE} -- ovn-nbctl --db ${NBDB} ${ARGS} show"
   sh -x &>${OUTDIRa}/${NODE}.${POD_OVNKUBE}.ovn-nbctl_show <<< "timeout 30 oc -n openshift-ovn-kubernetes exec -t -c ovn-controller ${POD_OVNKUBE} -- ovn-nbctl --db ${NBDB} ${ARGS} show" & PIDS+=($!)

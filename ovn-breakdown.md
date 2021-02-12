@@ -4,7 +4,7 @@ High level view of OVN, its components and its integration in Kubernetes.
 ### Table of Contents
 1. [Overview of ovn-kubernetes deployment](#Overview)
 
-## Overview of ovn-kubernetes deployment{#Overview}
+## Overview of ovn-kubernetes deployment {#Overview}
 
 There are three pod types for this deployment:
 ```

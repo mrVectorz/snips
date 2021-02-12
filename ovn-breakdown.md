@@ -40,7 +40,7 @@ ovn-kubernetes node components:
 - OpenVswitch
 
 
-Diagram of the OVN architecture taken from the man page. CMS explained bellow, and HV is hypervisor (in our case we can refer to it as worker).
+Diagram of the OVN architecture taken from the man page. CMS explained below, and HV is hypervisor (in our case we can refer to it as a worker).
 
 ```
                                          CMS
@@ -85,8 +85,8 @@ Pod creation steps:
 2. Scheduler reacts to pod creation, sets v1.Pod.spec.NodeName property.
 3. Kubelet notices the pod (if it's nodename matches).
 4. Kubelet creates a sandbox (the actual container, cgroups, linux ns, selinux) via CRI (Container Runtime Interface) to CRI-O (which then uses runc and so on). ([Creating Sandbox](https://github.com/cri-o/cri-o/blob/master/server/sandbox_run_linux.go#L289))
-5. CRIO executes CNI plugin binary (That binary is also called ovn-kubernetes). This can be refered to as Kubernetes Cloud Management System (CMS) plugin.
-6. CNI plugin sends an http POST request to ovn-kubernetes-node over internal socket.
+5. CRIO executes CNI plugin binary (That binary is also called ovn-kubernetes). This can be referred to as Kubernetes Cloud Management System (CMS) plugin.
+6. CNI plugin sends an http POST request to ovn-kubernetes-node over an internal socket.
 7. OVN-k node creates veth pair (connected to the ovn bridge - [mapping ref](https://github.com/ovn-org/ovn-kubernetes/blob/master/docs/switch-per-node.pdf)), then waits[0] for annotations **and** OpenFlows in openvswitchd. ([WatchServices control loop](https://github.com/ovn-org/ovn-kubernetes/blob/master/go-controller/pkg/ovn/ovn.go#L594))
   1. ovn-k master notices the pod, executes addLogicalPort.
   2. addLogicalPort creates a pod object in nbdb.
@@ -99,21 +99,21 @@ Pod creation steps:
 11. Kubelet continues setting up pod
 
 All steps are done via polling (minus the crio executing the binary), there is no direct communication between services.
-Most of the steps where it states X is watching for changes, this is non blocking and assyncronous. Multiple pods can be created at once.
+Most of the steps where it states X is watching for changes, this is non blocking and asynchronous. Multiple pods can be created at once.
 
-[0] - ovn-kubernetes node waits for two minutes and then timesout. If it does time out, kubelet will retry.
+[0] - ovn-kubernetes node waits for two minutes and then times out. If it does time out, kubelet will retry a few more times.
 
 ## Cloud Management System
 OVN CMS plugin is the component of the CMS that interfaces with OVN. Our CMS being Openshift/Kubernetes or Openstack.
 
 OVN initially targeted Openstack as CMS, and the interface was done via a Neutron plugin. With Kubernetes we have the ovn-kubernetes CNI plugin, this binary is executed by CRIO in the sandbox creation.
-The plugin’s main purpose is to translate kubernetes notion of network configurations, stored in etcd, into an intermediate representation understood by OVN.
+The plugin’s main purpose is to translate kubernetes' notion of network configurations, stored in etcd, into an intermediate representation understood by OVN.
 
 ## OVN Northbound Database
-This database (NBDB) is the interface between OVN and the CMS running above it. The CMS is the main (if not all) creator the contents of the database. This data will represent notions of logical switches, routers, ACLs, loadbalancers and so forth.
+This database (NBDB) is the interface between OVN and the CMS running above it. The CMS is the main (if not all) creator of the contents of the database. This data will represent notions of logical switches, routers, ACLs, loadbalancers and so forth.
 The **ovn-northd** program monitors the database contents, translates it to LogicalFlows, and stores it into the OVN Southbound database (SBDB).
 
-NorthBound database is replicated accross the cluster via Raft (the same protocol as etcd, but it's own implementation for some reason).
+NorthBound database is replicated across the cluster via Raft (the same protocol as etcd, but its own implementation for some reason).
 
 ### NBDB structure
 Quick overview of the contents/schema of the NBDB.
@@ -223,7 +223,7 @@ Servers:
 ```
 
 ## OVN Southbound Database
-The OVN Southbound Database contains three clases of data:
+The OVN Southbound Database contains three classes of data:
 - Physical Network (PN) tables that specify how to reach hypervisior and other nodes.  
   This contains all the information necessary to wire the overlay, such as IP addresses, supported tunnel types, and security keys.
 - Logical Network (LN) tables that describe the logical network in terms of ``logical datapath flows``.  
@@ -278,10 +278,10 @@ Chassis "3e4ff38c-918d-417d-8f88-8e7cd24b4a42"
     Port_Binding openshift-apiserver_apiserver-6f657f94f7-qfmpw
 (...)
 ```
-This output can be quite large depending on how many chasis, pods and so on are in the cluster.
+This output can be quite large depending on how many chassis, pods and so on are in the cluster.
 
 ## ovn-controller
 The `ovn-controller` is OVN’s agent on each hypervisor and software gateway.
-- Northbound, it connects to the OVN Southbound Database to learn about OVN configuration and status and to populate the PN table and the Chassis column in Binding table with the hypervisor’s status.
+- Northbound, it connects to the OVN Southbound Database to learn about OVN configuration and status and to populate the PN table and the Chassis column in the Binding table with the hypervisor’s status.
 - Southbound, it connects to `ovs-vswitchd` as an OpenFlow controller, for control over network traffic, and to the local `ovsdb-server` to allow it to monitor and control OpenvSwitch configuration.
 

@@ -2,9 +2,17 @@
 High level view of OVN, its components and its integration in Kubernetes.
 
 ### Table of Contents
-1. [Overview of ovn-kubernetes deployment](#Overview)
+1. [Overview of ovn-kubernetes deployment](#Overview_of_ovn-kubernetes_deployment)
+2. [Step by Step Pod Creation](#Step_by_Step_Pod_Creation)
+3. [Cloud Management System](#Cloud_Management_System)
+4. [OVN Northbound Database](#OVN_Northbound_Database)
+  - [NBDB structure](#NBDB_structure)
+5. [ovn-northd](#ovn-northd)
+6. [OVN Southbound Database](#OVN_Southbound_Database)
+  - [SBDB Structure](#SBDB_Structure)
+7. [ovn-controller](#ovn-controller)
 
-## Overview of ovn-kubernetes deployment {#Overview}
+## Overview of ovn-kubernetes deployment
 
 There are three pod types for this deployment:
 ```
@@ -101,8 +109,8 @@ OVN CMS plugin is the component of the CMS that interfaces with OVN. Our CMS bei
 OVN initially targeted Openstack as CMS, and the interface was done via a Neutron plugin. With Kubernetes we have the ovn-kubernetes CNI plugin, this binary is executed by CRIO in the sandbox creation.
 The plugin’s main purpose is to translate kubernetes notion of network configurations, stored in etcd, into an intermediate representation understood by OVN.
 
-## OVN Northbound  Database (NBDB)
-This  database  is  the  interface between OVN and the CMS running above  it. The CMS is the main (if not all) creator the contents of the database. This data will represent notions of logical switches, routers, ACLs, loadbalancers and so forth.
+## OVN Northbound Database
+This database (NBDB) is the interface between OVN and the CMS running above it. The CMS is the main (if not all) creator the contents of the database. This data will represent notions of logical switches, routers, ACLs, loadbalancers and so forth.
 The **ovn-northd** program monitors the database contents, translates it to LogicalFlows, and stores it into the OVN Southbound database (SBDB).
 
 NorthBound database is replicated accross the cluster via Raft (the same protocol as etcd, but it's own implementation for some reason).

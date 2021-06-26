@@ -205,18 +205,18 @@ metadata:
 spec:
   config:
     ignition:
-      version: 2.2.0
+      version: 3.1.0
     storage:
       files:
       - contents:
           source: data:text/plain;base64,W1VuaXRdCkRlc2NyaXB0aW9uPUFwcGx5IE9DUCBjcHUtcnQgd29ya2Fyb3VuZApBZnRlcj1uZXR3b3JrLW9ubGluZS50YXJnZXQKV2FudHM9bmV0d29yay1vbmxpbmUudGFyZ2V0CgpbU2VydmljZV0KRXhlY1N0YXJ0PS9iaW4vYmFzaCAvdXNyL2xvY2FsL2Jpbi9vY3BfY3B1X3J0X3dvcmthcm91bmQuc2gKVHlwZT1vbmVzaG90CgpbSW5zdGFsbF0KV2FudGVkQnk9bXVsdGktdXNlci50YXJnZXQK
         filesystem: root
-        mode: 660
+        mode: 0660
         path: /etc/systemd/system/ocp_cpu_rt_workaround.unit
       - contents:
           source: data:text/plain;base64,ZnVuY3Rpb24gbG9nKCkKeyAKICBlY2hvICIkKFRaPVogZGF0ZSArJUZUJVRaKSAkQCIKfQoKZnVuY3Rpb24gdmFsaWRhdGVfc2V0dXAoKQp7CiAgZ3JlcCAtcSA5NTAwMDAgL3N5cy9mcy9jZ3JvdXAvY3B1LGNwdWFjY3QvbWFjaGluZS5zbGljZS9jcHUucnRfcnVudGltZV91cyAyPiAvZGV2L251bGwKICByZXR1cm4gJD8KfQoKaWYgISB2YWxpZGF0ZV9zZXR1cDsgdGhlbgogIGxvZyAiSU5GTzogQXBwbHlpbmcgdGhlIHdvcmthcm91bmQiCiAgZWNobyA5NTAwMDAgPiAvc3lzL2ZzL2Nncm91cC9jcHUsY3B1YWNjdC9jcHUucnRfcnVudGltZV91cyAKICBpZiBbICQ/IC1uZSAwIF07IHRoZW4KICAgIGxvZyAiRVJST1I6IENvdWxkIG5vdCBzZXQgdGhlIHdvcmthcm91bmQiCiAgZWxzZQogICAgbG9nICJTVUNDRVNTOiBBcHBsaWVkIHRoZSB3b3JrYXJvdW5kIgogIGZpCmVsc2UKICBsb2cgIklORk86IFdvcmthcm91bmQgYWxyZWFkeSBpbiBwbGFjZSIKZmkK
         filesystem: root
-        mode: 660
+        mode: 0660
         path: /usr/local/bin/ocp_cpu_rt_workaround.sh
 EOF
 ```

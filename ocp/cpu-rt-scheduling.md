@@ -1,12 +1,17 @@
 # Creating pods with manually set cpu-rt-period and cpu-rt-runtime in OCP
 
+Goal was to have pods with real-time scheduling threads on an OCP cluster.
+
+### Index
+
 1. [Analysis](#analysis)
 2. [OCP TLDR](#tldr_ocp_workaround)
 3. [Other](#other)
+4. [References](#references)
 
 ### Analysis
 
-Allowing 'CAP_SYS_NICE' capability for the pod allows to then set real-time scheduling policies for calling process, and set scheduling policies and priorities for arbitrary processes. Alternatively create a privileged pod.
+Allowing 'CAP_SYS_NICE'[0](https://man7.org/linux/man-pages/man7/capabilities.7.html) capability for the pod allows to then set real-time scheduling policies for calling process, and set scheduling policies and priorities for arbitrary processes. Alternatively create a privileged pod.
 
 By default on a non RT worker the error on pod creation is:
 ```
@@ -147,6 +152,9 @@ CONTAINER ID  IMAGE                                   COMMAND         CREATED   
 6dd05e91f00f  registry.access.redhat.com/ubi8:latest  sleep infinity  8 seconds ago  Up 7 seconds ago         app11
 ```
 
+**Note**: for RHEL hosts, must be running cgroupsv1 and not v2. CGROUPSv2 currently doesn’t yet support control of realtime processes and the cpu controller can only be enabled when all RT processes are in the root cgroup. [ref](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html#cpu)
+
+
 ### TLDR OCP Workaround
 
 We will apply the workaround via MC.
@@ -255,3 +263,10 @@ done
 ```
 
 Updated KCS: [https://access.redhat.com/solutions/6099871](https://access.redhat.com/solutions/6099871)
+
+
+
+### References
+
+[0] - [CAP_SYS_NICE Definition](https://man7.org/linux/man-pages/man7/capabilities.7.html)
+[1] - [Scheduling real-time policies - SCHED_FIFO, SCHED_RR](https://man7.org/linux/man-pages/man7/sched.7.html)

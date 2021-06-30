@@ -17,6 +17,9 @@ ERRO[0017] time="2021-06-23T20:52:05Z" level=error msg="container_linux.go:366: 
 ```
 
 This is because, as we do not make use of the Docker daemon, we do not have the rt budget set by default (and systemd does not currently manage it either).
+There is a closed (will not fix, as supporting this is "weird") RFE for systemd:
+- [https://github.com/systemd/systemd/issues/329](https://github.com/systemd/systemd/issues/329)
+
 We can manually allocate by setting it to the parent cgroup (example machine slice):
 ```
 echo 950000 > /sys/fs/cgroup/cpu,cpuacct/machine.slice/cpu.rt_runtime_us

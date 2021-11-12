@@ -1,7 +1,11 @@
+# OCP Logging Opperator Configuration
 Testing different log forwarding configurations on Openshift's logging-operator
 
-- Validate if we can configure a pipeline not to forward logs to the default ES
+## Limit the default log forwading
+Validating if we can configure a pipeline not to forward logs to the default ES.
+
 This is doable by simply overriding the ClusterLogForwarder instance ressource.
+
 Example using a local ES cluster, no logs will go to the default ES that comes
  with the operator.
 ```
@@ -123,7 +127,9 @@ store could be added matching that label. Any new applications would be sent
 
 [0] - [Official fluentd documentation](https://docs.fluentd.org/configuration/config-file)
 
-- Provide example for mTLS configuration
+## mTLS configuration
+Provide example for mTLS configuration.
+
 All sensitive authentication information is provided via a kubernetes Secret object. A Secret is a key:value map, common keys are described here. Some output types support additional specialized keys, documented with the output-specific configuration field. All secret keys are optional, enable the security features you want by setting the relevant keys.
 
 Using a TLS URL (https://... or ssl://...) without any secret enables basic TLS: client authenticates server using system default certificate authority.

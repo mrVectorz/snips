@@ -44,7 +44,7 @@ To confirm this we can run the following command against one of the fluentd pods
 
 Notice that the only defined `host` are the newly added.
 
-- Validate if only certain application logs can be forwarded to non-default endpoint
+#### Validating if only certain application logs can be forwarded to non-default endpoint
 This require setting this operator in an unManaged state (which is also unsupported)
 First edit the ClusterLogging instance ressource:
 `oc edit -n openshift-logging ClusterLogging instance`
@@ -58,9 +58,10 @@ I suggest dumping the default `fluentd.conf` file prior to making changes in
 order to have a backup.
 `oc get -n openshift-logging cm fluentd -o json | jq -r '.data."fluent.conf"' > fluentd.conf.bak`
 
-We can now modify the fluentd configuration with anything we like that fluentd allows[0]:
+We can now modify the fluentd configuration with anything we like that [fluentd allows](https://docs.fluentd.org/configuration/config-file):
 `oc edit -n openshift-logging cm fluentd`
-Note: that this method will have a bunch of newline characters
+
+Note: that this method will have a bunch of newline characters in the edit
 
 In the case where the oprator wishes to split up application logs they will be
 required to edit the section where logs get labelled with APPLICATION:

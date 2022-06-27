@@ -3,6 +3,16 @@
 Delve install requirements:
 - dnf install gdb gcc git go -y
 
+If you require newer go release:
+```
+url='https://go.dev/dl/'
+version=$(curl -L -s $url | awk '/downloadBox.*href.*go[0-9]\.[0-9]+\.[0-9]\.linux\-amd64/ {print gensub(/.*"\/dl\/(.+tar\.gz)".*/, "\\1", "g", $NF)}')
+curl -L ${url}${version} -o ${version}
+rm -rf /usr/local/go && tar -C /usr/local -xzf go1.18.3.linux-amd64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+go version
+```
+
 ## Some Advantages over plain gbd
 - goroutine aware, threads have fixed memory allocation where goroutines are "dynamic"
 - slices

@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define PAGE_SIZE (unsigned int) 1024*1024*1024
+#define PAGE_SIZE (unsigned int) 1024*2048
 #define NUM_PAGES 2
 
 void main() {

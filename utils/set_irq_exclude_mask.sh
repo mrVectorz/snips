@@ -1,16 +1,23 @@
 #!/bin/bash
 
-# Usage: sudo ./set_irq_affinity_masks.sh "94-101,198-205"
+# Fetch all containers on the host
+containers=$(crictl ps -a -o json | jq -r '.containers | map(.id) | join(",")')
+# Gather a list of all the pinned CPUs that should be isolated
+ISOLATED_CPUS=""
+for container in ${containers//,/ }; do
+  cpu_list=$(crictl inspect $container | jq -r '.info.runtimeSpec.annotations as $anno | select($anno."irq-load-balancing.crio.io" == "disable") | select($anno."cpu-quota.crio.io" == "disable") | .status.resources.linux.cpusetCpus')
+  if [[ -n $cpu_list ]]; then
+    if [[ ! -n $full_cpu_list ]]; then
+      ISOLATED_CPUS="${cpu_list}"
+    else
+      ISOLATED_CPUS="${full_cpu_list},${cpu_list}"
+    fi
+  fi
+done
+echo $ISOLATED_CPUS
 
-if [ -z "$1" ]; then
-  echo "Usage: $0 <isolated_cpus>"
-  echo "Example: $0 \"94-101,198-205\""
-  exit 1
-fi
-
-ISOLATED_CPUS="$1"
-# NUM_CPUS=$(nproc)
-NUM_CPUS=208 #test
+# Host CPU count
+NUM_CPUS=$(nproc)
 
 # Initialize bit arrays
 allowed=()
@@ -69,8 +76,8 @@ echo "Allowed IRQ CPUs mask: $allowed_mask"
 echo "Banned IRQ CPUs mask:  $banned_mask"
 
 # Write to /proc/irq/default_smp_affinity
-SMP_AFFINITY_CONF="default_smp_affinity"
-#SMP_AFFINITY_CONF="/proc/irq/default_smp_affinity"
+#SMP_AFFINITY_CONF="test_default_smp_affinity"
+SMP_AFFINITY_CONF="/proc/irq/default_smp_affinity"
 if [ -w $SMP_AFFINITY_CONF ]; then
   echo "$allowed_mask" > $SMP_AFFINITY_CONF
   echo "Written to $SMP_AFFINITY_CONF"
@@ -79,8 +86,8 @@ else
 fi
 
 # Write to /etc/sysconfig/irqbalance
-#IRQBALANCE_CONF="/etc/sysconfig/irqbalance"
-IRQBALANCE_CONF="irqbalance"
+#IRQBALANCE_CONF="test_irqbalance"
+IRQBALANCE_CONF="/etc/sysconfig/irqbalance"
 if [ -w "$IRQBALANCE_CONF" ]; then
   if grep -q '^IRQBALANCE_BANNED_CPUS=' "$IRQBALANCE_CONF"; then
     sed -i "s/^IRQBALANCE_BANNED_CPUS=.*/IRQBALANCE_BANNED_CPUS=\"$banned_mask\"/" "$IRQBALANCE_CONF"

@@ -14,12 +14,16 @@ for container in ${containers//,/ }; do
     fi
   fi
 done
-echo $ISOLATED_CPUS
+#echo $ISOLATED_CPUS
 
 # Host CPU count
 NUM_CPUS=$(nproc)
 
-# Initialize bit arrays
+log() {
+  logger -t irq-affinity "$1"
+  echo "$1"
+}
+
 allowed=()
 banned=()
 
@@ -28,7 +32,6 @@ for ((i=0; i<NUM_CPUS; i++)); do
   banned[i]=0
 done
 
-# Parse CPU ranges and update masks
 IFS=',' read -ra RANGES <<< "$ISOLATED_CPUS"
 for range in "${RANGES[@]}"; do
   if [[ "$range" =~ ^([0-9]+)-([0-9]+)$ ]]; then
@@ -40,12 +43,11 @@ for range in "${RANGES[@]}"; do
     allowed[$range]=0
     banned[$range]=1
   else
-    echo "Invalid CPU range: $range"
+    log "Invalid CPU range: $range"
     exit 2
   fi
 done
 
-# Function to convert bit array to little-endian hex mask
 bits_to_hex_mask() {
   local -n bits=$1
   local mask=""
@@ -53,9 +55,7 @@ bits_to_hex_mask() {
 
   for ((i=NUM_CPUS-1; i>=0; i--)); do
     chunk="${bits[i]}$chunk"
-    # Every 32 bits, flush to hex
     if (( (${#chunk} % 32) == 0 )) || (( i == 0 )); then
-      # Pad if needed
       while (( ${#chunk} < 32 )); do
         chunk="0$chunk"
       done
@@ -65,36 +65,54 @@ bits_to_hex_mask() {
     fi
   done
 
-  # Remove trailing comma
   echo "${mask%,}"
 }
 
 allowed_mask=$(bits_to_hex_mask allowed)
 banned_mask=$(bits_to_hex_mask banned)
 
-echo "Allowed IRQ CPUs mask: $allowed_mask"
-echo "Banned IRQ CPUs mask:  $banned_mask"
+log "Allowed IRQ CPUs mask: $allowed_mask"
+log "Banned IRQ CPUs mask:  $banned_mask"
 
-# Write to /proc/irq/default_smp_affinity
-#SMP_AFFINITY_CONF="test_default_smp_affinity"
-SMP_AFFINITY_CONF="/proc/irq/default_smp_affinity"
-if [ -w $SMP_AFFINITY_CONF ]; then
-  echo "$allowed_mask" > $SMP_AFFINITY_CONF
-  echo "Written to $SMP_AFFINITY_CONF"
+SMP_FILE="/proc/irq/default_smp_affinity"
+if [ -w "$SMP_FILE" ]; then
+  current_mask=$(cat "$SMP_FILE" | tr 'A-Z' 'a-z')
+  if [[ "$current_mask" != "${allowed_mask,,}" ]]; then
+    echo "$allowed_mask" > "$SMP_FILE"
+    log "Updated $SMP_FILE"
+  else
+    log "No change to $SMP_FILE"
+  fi
 else
-  echo "Permission denied: cannot write to $SMP_AFFINITY_CONF"
+  log "Permission denied: cannot write to $SMP_FILE"
 fi
 
-# Write to /etc/sysconfig/irqbalance
-#IRQBALANCE_CONF="test_irqbalance"
 IRQBALANCE_CONF="/etc/sysconfig/irqbalance"
+RESTART_IRQBALANCE=false
+
 if [ -w "$IRQBALANCE_CONF" ]; then
-  if grep -q '^IRQBALANCE_BANNED_CPUS=' "$IRQBALANCE_CONF"; then
-    sed -i "s/^IRQBALANCE_BANNED_CPUS=.*/IRQBALANCE_BANNED_CPUS=\"$banned_mask\"/" "$IRQBALANCE_CONF"
+  existing_mask=$(grep '^IRQBALANCE_BANNED_CPUS=' "$IRQBALANCE_CONF" 2>/dev/null | cut -d= -f2 | tr -d '"' | tr 'A-Z' 'a-z')
+
+  if [[ "$existing_mask" != "${banned_mask,,}" ]]; then
+    if grep -q '^IRQBALANCE_BANNED_CPUS=' "$IRQBALANCE_CONF"; then
+      sed -i "s/^IRQBALANCE_BANNED_CPUS=.*/IRQBALANCE_BANNED_CPUS=\"$banned_mask\"/" "$IRQBALANCE_CONF"
+    else
+      echo "IRQBALANCE_BANNED_CPUS=\"$banned_mask\"" >> "$IRQBALANCE_CONF"
+    fi
+    log "Updated $IRQBALANCE_CONF"
+    RESTART_IRQBALANCE=true
   else
-    echo "IRQBALANCE_BANNED_CPUS=\"$banned_mask\"" >> "$IRQBALANCE_CONF"
+    log "No change to $IRQBALANCE_CONF"
   fi
-  echo "Written to $IRQBALANCE_CONF"
 else
-  echo "Permission denied: cannot write to $IRQBALANCE_CONF"
+  log "Permission denied: cannot write to $IRQBALANCE_CONF"
+fi
+
+if $RESTART_IRQBALANCE; then
+  if systemctl is-active --quiet irqbalance; then
+    log "Restarting irqbalance service..."
+    systemctl restart irqbalance && log "irqbalance restarted successfully"
+  else
+    log "irqbalance is not active; skipping restart"
+  fi
 fi

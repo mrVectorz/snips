@@ -12,12 +12,13 @@ for container in ${containers//,/ }; do
     else
       ISOLATED_CPUS="${full_cpu_list},${cpu_list}"
     fi
+    full_cpu_list=${ISOLATED_CPUS}
   fi
 done
 #echo $ISOLATED_CPUS
 
 # Host CPU count
-NUM_CPUS=$(nproc)
+NUM_CPUS=$(nproc --all)
 
 log() {
   logger -t irq-affinity "$1"
@@ -54,7 +55,7 @@ bits_to_hex_mask() {
   local chunk=""
 
   for ((i=NUM_CPUS-1; i>=0; i--)); do
-    chunk="${bits[i]}$chunk"
+    chunk="$chunk${bits[i]}"
     if (( (${#chunk} % 32) == 0 )) || (( i == 0 )); then
       while (( ${#chunk} < 32 )); do
         chunk="0$chunk"

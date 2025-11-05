@@ -27,25 +27,52 @@ The scripts collect comprehensive metrics including:
 
 ## Usage
 
+### SSH to the Environment
+
+First, connect to your environment:
+
+```bash
+# Set KUBECONFIG
+export KUBECONFIG=/home/gitlab-runner/kubeconfig-bos2-ocp1.yaml
+
+# Verify connection
+oc get nodes
+```
+
 ### Using the Bash Script (Recommended)
 
 The bash script is simpler and doesn't require Python dependencies:
 
+**Important:** The script uses **peak-focused collection**. For each metric, it:
+1. Searches the specified time range to find when the peak value occurred
+2. Collects data for 1 hour before and 1 hour after that peak (2-hour window total)
+
+This means:
+- `--time-range 7d` searches the last 7 days to find the peak, then collects 2 hours around it
+- `--time-range 24h` searches the last 24 hours to find the peak, then collects 2 hours around it
+- The actual collected data is always 2 hours (around the peak), but the time range determines how far back to search for the peak
+
 ```bash
-# Basic usage (collects last 1 hour of data)
+# Basic usage (searches last 1 hour for peak, collects 2h around peak)
 ./collect_odf_metrics.sh
 
-# Collect 6 hours of data
-./collect_odf_metrics.sh --time-range 6h
+# Search last 7 days for peak, then collect 2h around peak (recommended for sizing)
+./collect_odf_metrics.sh --time-range 7d
+
+# Search last 24 hours for peak, then collect 2h around peak
+./collect_odf_metrics.sh --time-range 24h
 
 # Specify output directory
-./collect_odf_metrics.sh --output-dir /tmp/odf_metrics --time-range 24h
+./collect_odf_metrics.sh --output-dir /tmp/odf_metrics --time-range 7d
 
 # Create a tarball of the collected metrics
-./collect_odf_metrics.sh --time-range 6h --tarball
+./collect_odf_metrics.sh --time-range 7d --tarball
 
-# Combine options: collect 24h of data and create tarball
-./collect_odf_metrics.sh --time-range 24h --output-dir /tmp/odf_data --tarball
+# Increase parallelism (faster collection, default is 10 concurrent queries)
+./collect_odf_metrics.sh --time-range 7d --max-jobs 20
+
+# Combine options: search 7 days, collect 2h around peak, create tarball
+./collect_odf_metrics.sh --time-range 7d --output-dir /tmp/odf_data --tarball --max-jobs 15
 
 # Custom namespace (if Prometheus is in different namespace)
 ./collect_odf_metrics.sh --namespace openshift-monitoring
@@ -77,21 +104,25 @@ odf_metrics/
 ├── discovered_container_metrics.txt   # List of available container metrics
 ├── odf_metrics_summary_*.txt           # Human-readable summary
 ├── storage_capacity/
-│   └── *.json                          # Storage capacity metrics
+│   └── *.json                          # Storage capacity metrics (2h around peak)
 ├── performance/
-│   └── *.json                          # Performance metrics
+│   └── *.json                          # Performance metrics (2h around peak)
 ├── ceph_osd/
-│   └── *.json                          # OSD metrics
+│   └── *.json                          # OSD metrics (2h around peak)
 ├── resource_usage/
-│   └── *.json                          # Resource consumption metrics
+│   └── *.json                          # Resource consumption metrics (2h around peak)
 ├── pvc_usage/
-│   └── *.json                          # PVC statistics
+│   └── *.json                          # PVC statistics (2h around peak)
 └── rbd/
-    └── *.json                          # RBD metrics
+    └── *.json                          # RBD metrics (2h around peak)
 
 # If --tarball option is used, also creates:
 odf_metrics.tar.gz                      # Compressed archive of all metrics
 ```
+
+**Note:** Each JSON file contains:
+- Standard Prometheus query response data (2-hour window around peak)
+- Metadata fields: `peak_timestamp`, `window_start`, `window_end` (added by the collection script)
 
 ## Metrics Collected
 
@@ -239,17 +270,21 @@ This ensures the script works with both certificate-based authentication (like `
 
 ## Time Range Formats
 
-The `--time-range` parameter accepts:
-- `1h` - 1 hour
-- `6h` - 6 hours
-- `24h` - 24 hours
-- `7d` - 7 days
-- Or any Prometheus duration format
+The `--time-range` parameter defines how far back to search for peak usage:
+- `1h` - Search last 1 hour for peak (default)
+- `6h` - Search last 6 hours for peak
+- `24h` - Search last 24 hours for peak
+- `7d` - Search last 7 days for peak (recommended for sizing analysis)
+
+**Note:** Regardless of the time range specified, the script collects **2 hours of data** (1 hour before and 1 hour after the detected peak). The time range only determines the search window for finding the peak.
+
+The script accepts any Prometheus duration format (e.g., `1h`, `6h`, `24h`, `7d`, `30d`).
 
 ## Notes
 
-- The scripts collect metrics for the specified time range ending at the current time
-- Metrics are collected at 30-second intervals
+- **Peak-Focused Collection**: The script searches the specified time range to find peak values, then collects 2 hours of data around each peak (1 hour before and 1 hour after)
+- Metrics are collected at 30-second intervals within the 2-hour window
+- The `--time-range` parameter determines how far back to search for peaks, not how much data to collect
 - Some metrics may not be available if ODF components are not fully deployed
 - The script automatically discovers available metrics from your cluster before querying
 - Discovered metrics are saved to `discovered_*.txt` files for reference
@@ -259,14 +294,14 @@ The `--time-range` parameter accepts:
 
 ```bash
 # 1. Connect to environment
-ssh 192.168.1.11
-export KUBECONFIG=/home/kubeconfig-example-ocp.yaml
+ss jumphost
+export KUBECONFIG=/home/kni/kubeconfig-bos2-ocp1.yaml
 
 # 2. Verify connection
 oc get nodes
 
-# 3. Collect metrics (last 6 hours)
-./collect_odf_metrics.sh --time-range 6h
+# 3. Collect metrics (search 7 days for peak, collect 2h around peak)
+./collect_odf_metrics.sh --time-range 7d
 
 # 4. Review summary
 cat odf_metrics/odf_metrics_summary_*.txt
